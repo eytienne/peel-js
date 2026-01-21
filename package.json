@@ -1,0 +1,10 @@
+{
+  "name": "peel.js",
+  "version": "1.0.0",
+  "description": "Javascript micro library for creating peeling effects using just HTML5",
+  "main": "src/peel.js",
+  "keywords": [],
+  "author": "eytienne",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.0"
+}
