@@ -2,7 +2,11 @@
   "name": "peel.js",
   "version": "1.0.0",
   "description": "Javascript micro library for creating peeling effects using just HTML5",
-  "main": "src/peel.js",
+  "exports": {
+    ".": "./src/peel.ts",
+    "./style": "./src/peel.css"
+  },
+  "files": ["./src/*"],
   "keywords": [],
   "author": "eytienne",
   "license": "MIT",

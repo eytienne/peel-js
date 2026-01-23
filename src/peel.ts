@@ -1,49 +1,9 @@
-(function(win) {
 
   // Constants
 
   var PRECISION       = 1e2; // 2 decimals
-  var VENDOR_PREFIXES = ['webkit','moz', ''];
   var SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
   var CSS_PREFIX      = 'peel-';
-
-  var clipProperty, transformProperty, boxShadowProperty, filterProperty;
-  var backgroundGradientSupport;
-  var docEl = document.documentElement;
-  var style = docEl.style;
-
-
-  // Support
-
-  function getCssProperty(name) {
-    var prefix, str;
-    for (var i = 0; i < VENDOR_PREFIXES.length; i++) {
-      prefix = VENDOR_PREFIXES[i];
-      str = prefix ? prefix + capitalize(name) : name;
-      if (str in style) {
-        return str;
-      }
-    }
-  }
-
-  function setCssProperties() {
-    clipProperty      = getCssProperty('clipPath');
-    transformProperty = getCssProperty('transform');
-    boxShadowProperty = getCssProperty('boxShadow');
-    filterProperty    = getCssProperty('filter');
-    setBackgroundGradientSupport();
-    Peel.supported = !!(clipProperty && transformProperty);
-    Peel.effectsSupported = backgroundGradientSupport;
-  }
-
-  function setBackgroundGradientSupport() {
-    var el = document.createElement('div');
-    var style = el.style;
-    style.cssText = 'background:linear-gradient(45deg,#9f9,white);';
-    backgroundGradientSupport = (style.backgroundImage || '').indexOf('gradient') > -1;
-  }
-
-
 
   // General helpers
 
@@ -79,22 +39,17 @@
     return CSS_PREFIX + str;
   }
 
-  // CSS Helpers
-
-  function setCSSClip(el, clip) {
-    el.style[clipProperty] = clip;
+  // CSS Helper
+  function setTransform(el: HTMLElement, t) {
+    el.style.transform = t;
   }
 
-  function setTransform(el, t) {
-    el.style[transformProperty] = t;
+  function setBoxShadow(el: HTMLElement, x, y, blur, spread, intensity) {
+    el.style.boxShadow = getShadowCss(x, y, blur, spread, intensity);
   }
 
-  function setBoxShadow(el, x, y, blur, spread, intensity) {
-    el.style[boxShadowProperty] = getShadowCss(x, y, blur, spread, intensity);
-  }
-
-  function setDropShadow(el, x, y, blur, intensity) {
-    el.style[filterProperty] = 'drop-shadow(' + getShadowCss(x, y, blur, null, intensity) + ')';
+  function setDropShadow(el: HTMLElement, x, y, blur, intensity) {
+    el.style.filter = 'drop-shadow(' + getShadowCss(x, y, blur, null, intensity) + ')';
   }
 
   function getShadowCss(x, y, blur, spread, intensity) {
@@ -110,7 +65,6 @@
   }
 
   function setBackgroundGradient(el, rotation, stops) {
-    if (!backgroundGradientSupport) return;
     var css;
     if (stops.length === 0) {
       css = 'none';
@@ -162,7 +116,7 @@
 
   // DOM Element Helpers
 
-  function getElement(obj, node) {
+  function getElement(obj: string|Element, node: Element) {
     if (typeof obj === 'string') {
       obj = (node || document).querySelector(obj);
     }
@@ -195,8 +149,8 @@
 
   // SVG Helpers
 
-  function createSVGElement(tag, parent, attributes) {
-    parent = parent || docEl;
+  function createSVGElement(tag, parent, attributes?: object) {
+    parent = parent || document.documentElement;
     var el = document.createElementNS(SVG_NAMESPACE, tag);
     parent.appendChild(el);
     for (var key in attributes) {
@@ -211,16 +165,22 @@
   }
 
 
+/**
+ * Main class that controls the peeling effect.
+ */
+export class Peel {
+  el: Element;
+  constraints: unknown[];
+  events: Event[];
+  corner: unknown;
+
   /**
-   * Main class that controls the peeling effect.
    * @param {HTMLElement|string} el The main container element (can be query).
    * @param {object} options Options for the effect.
-   * @constructor
-   * @public
    */
-  function Peel (el, opt) {
+  constructor(el, opt) {
     this.setOptions(opt);
-    this.el = getElement(el, docEl);
+    this.el = getElement(el, document.documentElement);
     this.constraints = [];
     this.events = [];
     this.setupLayers();
@@ -232,10 +192,8 @@
 
   /**
    * Four constants representing the corners of the element from which peeling can occur.
-   * @constant
-   * @public
    */
-  Peel.Corners = {
+  static readonly Corners = {
     TOP_LEFT:     0x0,
     TOP_RIGHT:    0x1,
     BOTTOM_LEFT:  0x2,
@@ -244,9 +202,8 @@
 
   /**
    * Defaults
-   * @constant
    */
-  Peel.Defaults = {
+  static readonly Defaults = {
     'topShadow': true,
     'topShadowBlur': 5,
     'topShadowAlpha': .5,
@@ -282,10 +239,8 @@
   /**
    * Sets the corner for the peel effect to happen from (default is bottom right).
    * @param {Mixed} [...] Either x,y or a corner id.
-   * @public
    */
-  Peel.prototype.setCorner = function() {
-    var args = arguments;
+  setCorner(...args) {
     if (args[0] === undefined) {
       args = [Peel.Corners.BOTTOM_RIGHT];
     } else if (args[0].length) {
@@ -297,9 +252,8 @@
   /**
    * Sets a pre-defined "mode".
    * @param {string} mode The mode to set.
-   * @public
    */
-  Peel.prototype.setMode = function(mode) {
+  setMode = function(mode) {
     if (mode === 'book') {
       // The order of constraints is important here so that the peel line
       // approaches the horizontal smoothly without jumping.
@@ -323,9 +277,8 @@
    *     linear path along 2 points (p1 to p2), while 8 arguments indicates a
    *     bezier curve from p1 to p2 using control points c1 and c2. The first
    *     and last two arguments represent p1 and p2, respectively.
-   * @public
    */
-  Peel.prototype.setPeelPath = function(x1, y1) {
+  setPeelPath = function(x1, y1) {
     var args = arguments, p1, p2, c1, c2;
     p1 = new Point(x1, y1);
     if (args.length === 4) {
@@ -350,9 +303,8 @@
    *     If not passed, this will be the element associated with the Peel
    *     instance. Allowing this to be passed lets another element serve as a
    *     "hit area" that can be larger than the element itself.
-   * @public
    */
-  Peel.prototype.handleDrag = function(fn, el) {
+  handleDrag = function(fn, el) {
     this.dragHandler = fn;
     this.setupDragEvents(el);
   }
@@ -368,9 +320,8 @@
    *     If not passed, this will be the element associated with the Peel
    *     instance. Allowing this to be passed lets another element serve as a
    *     "hit area" that can be larger than the element itself.
-   * @public
    */
-  Peel.prototype.handlePress = function(fn, el) {
+  handlePress = function(fn, el) {
     this.pressHandler = fn;
     this.setupDragEvents(el);
   }
@@ -378,9 +329,8 @@
   /**
    * Sets up the drag events needed for both drag and press handlers.
    * @param {HTMLElement} el The element to initiate the dragStart event on.
-   * @private
    */
-  Peel.prototype.setupDragEvents = function(el) {
+  private setupDragEvents = function(el) {
     var self = this, isDragging, moveName, endName;
 
     if (this.dragEventsSetup) {
@@ -396,8 +346,8 @@
       moveName = touch ? 'touchmove' : 'mousemove';
       endName  = touch ? 'touchend' : 'mouseup';
 
-      addEvent(docEl, moveName, dragMove);
-      addEvent(docEl, endName, dragEnd);
+      addEvent(document.documentElement, moveName, dragMove);
+      addEvent(document.documentElement, endName, dragEnd);
       isDragging = false;
     }
 
@@ -412,8 +362,8 @@
       if (!isDragging && self.pressHandler) {
         callHandler(self.pressHandler, evt);
       }
-      removeEvent(docEl, moveName, dragMove);
-      removeEvent(docEl, endName, dragEnd);
+      removeEvent(document.documentElement, moveName, dragMove);
+      removeEvent(document.documentElement, endName, dragEnd);
     }
 
     function callHandler(fn, evt) {
@@ -428,9 +378,8 @@
 
   /**
    * Remove all event handlers previously added to the instance.
-   * @public
    */
-  Peel.prototype.removeEvents = function() {
+  removeEvents = function() {
     this.events.forEach(function(e, i) {
       removeEvent(e.el, e.type, e.handler);
     });
@@ -441,9 +390,8 @@
    * Sets the peel effect to a point in time along a previously
    * specified path. Will throw an error if no path exists.
    * @param {number} n The time value (between 0 and 1).
-   * @public
    */
-  Peel.prototype.setTimeAlongPath = function(t) {
+  setTimeAlongPath = function(t) {
     t = clamp(t);
     var point = this.path.getPointForTime(t);
     this.timeAlongPath = t;
@@ -456,9 +404,8 @@
    * area of the polygon. If a peel path is set, it will use the progress along
    * the path instead.
    * @param {number} n A point between 0 and 1.
-   * @public
    */
-  Peel.prototype.setFadeThreshold = function(n) {
+  setFadeThreshold = function(n) {
     this.fadeThreshold = n;
   }
 
@@ -466,9 +413,8 @@
    * Sets the position of the peel effect. This point is the position
    * of the corner that is being peeled back.
    * @param {Mixed} [...] Either x,y or a corner id.
-   * @public
    */
-  Peel.prototype.setPeelPosition = function() {
+  setPeelPosition = function() {
     var pos = this.getPointOrCorner(arguments);
     pos = this.getConstrainedPeelPosition(pos);
     if (!pos) {
@@ -490,13 +436,11 @@
    * desired effect. An arbitrary point can also be used with an effect like a
    * thumbtack holding the pages together.
    * @param {Mixed} [...] Either x,y or a corner id.
-   * @public
    */
   /**
    * Sets the corner for the peel effect to happen from.
-   * @public
    */
-  Peel.prototype.addPeelConstraint = function() {
+  addPeelConstraint = function() {
     var p = this.getPointOrCorner(arguments);
     var radius = this.corner.subtract(p).getLength();
     this.constraints.push(new Circle(p, radius));
@@ -507,9 +451,8 @@
    * Sets an option to use for the effect.
    * @param {string} key The option to set.
    * @param {Mixed} value The value for the option.
-   * @public
    */
-  Peel.prototype.setOption = function(key, value) {
+  setOption = function(key, value) {
     this.options[key] = value;
   }
 
@@ -517,18 +460,16 @@
    * Gets an option set by the user.
    * @param {string} key The key of the option to get.
    * @returns {Mixed}
-   * @public
    */
-  Peel.prototype.getOption = function(key) {
+  getOption = function(key) {
     return this.options[camelize(key)];
   }
 
   /**
    * Gets the ratio of the area of the clipped top layer to the total area.
    * @returns {number} A value between 0 and 1.
-   * @public
    */
-  Peel.prototype.getAmountClipped = function() {
+  getAmountClipped = function() {
     var topArea = this.getTopClipArea();
     var totalArea = this.width * this.height;
     return normalize(topArea, totalArea, 0);
@@ -540,9 +481,8 @@
    * @param {Element} el The element to add the handler to.
    * @param {string} type The event type.
    * @param {Function} fn The handler function.
-   * @private
    */
-  Peel.prototype.addEvent = function(el, type, fn) {
+  private addEvent = function(el, type, fn) {
     addEvent(el, type, fn);
     this.events.push({
       el: el,
@@ -554,9 +494,8 @@
   /**
    * Gets the area of the clipped top layer.
    * @returns {number}
-   * @private
    */
-  Peel.prototype.getTopClipArea = function() {
+  private getTopClipArea = function() {
     var top  = new Polygon();
     this.elementBox.forEach(function(side) {
       this.distributeLineByPeelLine(side, top);
@@ -570,9 +509,8 @@
    * constraint operates relative to the vertical midline). Only one constraint
    * should be required - changing the order of the constraints can help to
    * achieve the proper effect and more than one will interfere with each other.
-   * @private
    */
-  Peel.prototype.calculateFlipConstraint = function() {
+  private calculateFlipConstraint = function() {
     var corner = this.corner, arr = this.constraints.concat();
     this.flipConstraint = arr.sort(function(a, b) {
       var aY = corner.y - a.center.y;
@@ -586,18 +524,16 @@
    * @param {Event} evt The original DOM event.
    * @param {string} type The event type, "mouse" or "touch".
    * @param {Function} fn The handler function to be called on drag.
-   * @private
    */
-  Peel.prototype.dragStart = function(evt, type, fn) {
+  private dragStart = function(evt, type, fn) {
   }
 
   /**
    * Calls an event handler using the coordinates of the event.
    * @param {Event} evt The original event.
    * @param {Function} fn The handler to call.
-   * @private
    */
-  Peel.prototype.fireHandler = function(evt, fn) {
+  private fireHandler = function(evt, fn) {
     var coords = getEventCoordinates(evt, this.el);
     fn.call(this, evt, coords.x, coords.y);
   }
@@ -605,9 +541,8 @@
   /**
    * Sets the clipping points of the top and back layers based on a line
    * segment that represents the peel line.
-   * @private
    */
-  Peel.prototype.setClipping = function() {
+  private setClipping = function() {
     var top  = new Polygon();
     var back = new Polygon();
     this.clippingBox.forEach(function(side) {
@@ -624,9 +559,8 @@
    * @param {LineSegment} seg The line segment to check against.
    * @param {Polygon} poly1 The first polygon.
    * @param {Polygon} [poly2] The second polygon.
-   * @private
    */
-  Peel.prototype.distributeLineByPeelLine = function(seg, poly1, poly2) {
+  private distributeLineByPeelLine = function(seg, poly1, poly2) {
     var intersect = this.peelLineSegment.getIntersectPoint(seg);
     this.distributePointByPeelLine(seg.p1, poly1, poly2);
     this.distributePointByPeelLine(intersect, poly1, poly2);
@@ -639,9 +573,8 @@
    * @param {Point} p The point to be distributed.
    * @param {Polygon} poly1 The first polygon.
    * @param {Polygon} [poly2] The second polygon.
-   * @private
    */
-  Peel.prototype.distributePointByPeelLine = function(p, poly1, poly2) {
+  private distributePointByPeelLine = function(p, poly1, poly2) {
     if (!p) return;
     var d = this.peelLineSegment.getPointDeterminant(p);
     if (d <= 0) {
@@ -655,9 +588,8 @@
   /**
    * Sets the options for the effect, merging in defaults.
    * @param {Object} opt User options.
-   * @private
    */
-  Peel.prototype.setOptions = function(opt) {
+  private setOptions = function(opt) {
     var options = opt || {}, defaults = Peel.Defaults;
     for (var key in defaults) {
       if (!defaults.hasOwnProperty(key) || key in options) {
@@ -674,9 +606,8 @@
    * @param {HTMLElement} parent The parent if the element needs to be created.
    * @param {numer} zIndex The z index of the layer.
    * @returns {HTMLElement}
-   * @private
    */
-  Peel.prototype.findOrCreateLayer = function(id, parent, zIndex) {
+  private findOrCreateLayer = function(id, parent, zIndex) {
     var optId = id + '-element';
     var domId = prefix(id);
     var el = getElement(this.getOption(optId) || '.' + domId, parent);
@@ -693,9 +624,8 @@
    * created from the first argument as a corner id.
    * @param {Arguments} args The arguments object from the original function.
    * @returns {Point}
-   * @private
    */
-  Peel.prototype.getPointOrCorner = function(args) {
+  private getPointOrCorner = function(args) {
     if (args.length === 2) {
       return new Point(args[0], args[1]);
     } else if(typeof args[0] === 'number') {
@@ -707,9 +637,8 @@
   /**
    * Returns a corner point based on an id defined in Peel.Corners.
    * @param {number} id The id of the corner.
-   * @private
    */
-  Peel.prototype.getCornerPoint = function(id) {
+  private getCornerPoint = function(id) {
     var x = +!!(id & 1) * this.width;
     var y = +!!(id & 2) * this.height;
     return new Point(x, y);
@@ -718,9 +647,8 @@
   /**
    * Gets an optional clipping shape that may be set by the user.
    * @returns {Object}
-   * @private
    */
-  Peel.prototype.getOptionalShape = function() {
+  private getOptionalShape = function() {
     var shapes = ['rect', 'polygon', 'path', 'circle'], found;
     shapes.some(function(type) {
       var attr = this.getOption(type), obj;
@@ -738,9 +666,8 @@
   /**
    * Sets up the main layers used for the effect that may include a possible
    * subclip shape.
-   * @private
    */
-  Peel.prototype.setupLayers = function() {
+  private setupLayers = function() {
     var shape = this.getOptionalShape();
 
     // The inner layers may be wrapped later, so keep a reference to them here.
@@ -787,9 +714,8 @@
    * @param {Object} shape A shape describing the SVG element to be used.
    * @param {HTMLElement} parent The parent element where the layer will be added.
    * @returns {SVGElement}
-   * @private
    */
-  Peel.prototype.setupDropShadow = function(shape, parent) {
+  private setupDropShadow = function(shape, parent) {
     var svg = createSVGElement('svg', parent, {
       'class': prefix('layer')
     });
@@ -803,9 +729,8 @@
    * @param {HTMLElement} el The element to become the wrapped shape layer.
    * @param {string} id The identifier for the new layer that will wrap the element.
    * @returns {HTMLElement} The new element that wraps the shape layer.
-   * @private
    */
-  Peel.prototype.wrapShapeLayer = function(el, id) {
+  private wrapShapeLayer = function(el, id) {
     var zIndex = getZIndex(el);
     addClass(el, prefix('shape-layer'));
     var outerLayer = this.findOrCreateLayer(id, this.el, zIndex);
@@ -816,9 +741,8 @@
   /**
    * Sets up the dimensions of the element box and clipping box that area used
    * in the effect.
-   * @private
    */
-  Peel.prototype.setupDimensions = function() {
+  private setupDimensions = function() {
     this.width  = this.el.offsetWidth;
     this.height = this.el.offsetHeight;
     this.center = new Point(this.width / 2, this.height / 2);
@@ -831,9 +755,8 @@
    * Gets a box defined by 4 line segments that is at a scale of the main
    * element.
    * @param {number} scale The scale for the box to be.
-   * @private
    */
-  Peel.prototype.getScaledBox = function(scale) {
+  private getScaledBox = function(scale) {
 
     // Box scale is equal to:
     // 1 * the bottom/right scale
@@ -858,9 +781,8 @@
    * Returns the peel position adjusted by constraints, if there are any.
    * @param {Point} point The peel position to be constrained.
    * @returns {Point}
-   * @private
    */
-  Peel.prototype.getConstrainedPeelPosition = function(pos) {
+  private getConstrainedPeelPosition = function(pos) {
     this.constraints.forEach(function(area) {
       var offset = this.getFlipConstraintOffset(area, pos);
       if (offset) {
@@ -878,9 +800,8 @@
    * @param {Circle} area The constraint to check against.
    * @param {Point} point The peel position to be constrained.
    * @returns {number|undefined}
-   * @private
    */
-  Peel.prototype.getFlipConstraintOffset = function(area, pos) {
+  private getFlipConstraintOffset = function(area, pos) {
     var offset = this.getOption('flipConstraintOffset');
     if (area === this.flipConstraint && offset) {
       var cornerToCenter = this.corner.subtract(this.center);
@@ -910,9 +831,8 @@
    * Gets the line segment that represents the current peel line.
    * @param {Point} point The position of the peel corner.
    * @returns {LineSegment}
-   * @private
    */
-  Peel.prototype.getPeelLineSegment = function(point) {
+  private getPeelLineSegment = function(point) {
     // The point midway between the peel position and the corner.
     var halfToCorner = this.corner.subtract(point).scale(.5);
     var midpoint = point.add(halfToCorner);
@@ -933,9 +853,8 @@
   /**
    * Sets the transform of the back layer.
    * @param {Point} pos The position of the peeling corner.
-   * @private
    */
-  Peel.prototype.setBackTransform = function(pos) {
+  private setBackTransform = function(pos) {
     var mirroredCorner = this.flipPointHorizontally(this.corner);
     var r = (this.peelLineRotation - 90) * 2;
     var t = pos.subtract(mirroredCorner.rotate(r));
@@ -954,9 +873,8 @@
    * and bottom right corners. This function will return how far the peel line
    * has advanced along that line.
    * @returns {number} A position >= 0.
-   * @private
    */
-  Peel.prototype.getPeelLineDistance = function() {
+  private getPeelLineDistance = function() {
     var cornerId, opposingCornerId, corner, opposingCorner;
     if (this.peelLineRotation < 90) {
       cornerId = Peel.Corners.TOP_RIGHT;
@@ -990,9 +908,8 @@
 
   /**
    * Sets shadows and fade effects.
-   * @private
    */
-  Peel.prototype.setEffects = function() {
+  private setEffects = function() {
     var t = this.getPeelLineDistance();
     this.setTopShadow(t);
     this.setBackShadow(t);
@@ -1004,9 +921,8 @@
   /**
    * Sets the top shadow as either a box-shadow or a drop-shadow filter.
    * @param {number} t Position of the peel line from corner to corner.
-   * @private
    */
-  Peel.prototype.setTopShadow = function(t) {
+  private setTopShadow = function(t) {
     if (!this.getOption('topShadow')) {
       return;
     }
@@ -1028,9 +944,8 @@
    * @param {boolean} dist Whether or not to use distribution.
    * @param {number} mult A multiplier for the result.
    * @returns {number}
-   * @private
    */
-  Peel.prototype.distributeOrLinear = function(n, dist, mult) {
+  private distributeOrLinear = function(n, dist, mult) {
     if (dist) {
       return distribute(n, mult);
     } else {
@@ -1045,18 +960,16 @@
    * @param {number} exp The exponent to be used.
    * @param {number} mult A multiplier for the result.
    * @returns {number}
-   * @private
    */
-  Peel.prototype.exponential = function(n, exp, mult) {
+  private exponential = function(n, exp, mult) {
     return mult * clamp(Math.pow(1 + n, exp) - 1);
   }
 
   /**
    * Sets reflection of the back face as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
-   * @private
    */
-  Peel.prototype.setBackReflection = function(t) {
+  private setBackReflection = function(t) {
     var stops = [];
     if (this.canSetLinearEffect('backReflection', t)) {
 
@@ -1081,9 +994,8 @@
   /**
    * Sets shadow of the back face as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
-   * @private
    */
-  Peel.prototype.setBackShadow = function(t) {
+  private setBackShadow = function(t) {
     var stops = [];
     if (this.canSetLinearEffect('backShadow', t)) {
 
@@ -1108,9 +1020,8 @@
   /**
    * Sets the bottom shadow as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
-   * @private
    */
-  Peel.prototype.setBottomShadow = function(t) {
+  private setBottomShadow = function(t) {
     var stops = [];
     if (this.canSetLinearEffect('bottomShadow', t)) {
 
@@ -1140,17 +1051,15 @@
    * @param {string} name Name of the effect
    * @param {number} t Current position of the linear effect line.
    * @returns {boolean}
-   * @private
    */
-  Peel.prototype.canSetLinearEffect = function(name, t) {
+  private canSetLinearEffect = function(name, t) {
     return this.getOption(name) && t > 0;
   }
 
   /**
    * Sets the fading effect of the top layer, if a threshold is set.
-   * @private
    */
-  Peel.prototype.setFade = function() {
+  private setFade = function() {
     var threshold = this.fadeThreshold, opacity = 1, n;
     if (threshold) {
       if (this.timeAlongPath !== undefined) {
@@ -1171,31 +1080,35 @@
    * Flips a point along an imaginary vertical midpoint.
    * @param {Array} points The points to be flipped.
    * @returns {Array}
-   * @private
    */
-  Peel.prototype.flipPointHorizontally = function(p) {
+  private flipPointHorizontally = function(p) {
     return new Point(p.x - ((p.x - this.center.x) * 2), p.y);
   }
 
   /**
    * Post setup initialization.
-   * @private
    */
-  Peel.prototype.init = function() {
+  private init = function() {
     if (this.getOption('setPeelOnInit')) {
       this.setPeelPosition(this.corner);
     }
     addClass(this.el, prefix('ready'));
   }
+}
+
+/**
+ * Class that clips an HTMLElement by an SVG path.
+*/
+class SVGClip {
+  el: HTMLElement;
+  shape: unknown;
 
   /**
-   * Class that clips an HTMLElement by an SVG path.
    * @param {HTMLElement} el The element to be clipped.
    * @param {Object} [shape] An object defining the SVG element to use in the new
    *     clip path. Defaults to a polygon.
-   * @constructor
    */
-  function SVGClip (el, shape) {
+  constructor(el, shape?: unknown) {
     this.el = el;
     this.shape = SVGClip.createClipPath(el, shape || {
       'type': 'polygon'
@@ -1208,9 +1121,8 @@
    * Sets up the global SVG element and its nested defs object to use for new
    * clip paths.
    * @returns {SVGElement}
-   * @public
    */
-  SVGClip.getDefs = function() {
+  static getDefs = function() {
     if (!this.defs) {
       this.svg  = createSVGElement('svg', null, {
         'class': prefix('svg-clip-element')
@@ -1227,22 +1139,21 @@
    * @param {Object} obj An object defining the SVG element to be used in the
    *     clip path.
    * @returns {SVGElement}
-   * @public
    */
-  SVGClip.createClipPath = function(el, obj) {
+  static createClipPath(el: HTMLElement, obj) {
     var id = SVGClip.getId();
     var clipPath = createSVGElement('clipPath', this.getDefs());
     var svgEl = createSVGElement(obj.type, clipPath, obj.attributes);
     setSVGAttribute(clipPath, 'id', id);
-    setCSSClip(el, 'url(#' + id + ')');
+    el.style.clipPath = 'url(#' + id + ')';
     return svgEl;
   }
 
+  static id: number;
   /**
    * Gets the next svg clipping id.
-   * @public
    */
-  SVGClip.getId = function() {
+  static getId = function() {
     if (!SVGClip.id) {
       SVGClip.id = 1;
     }
@@ -1253,33 +1164,31 @@
    * Sets the "points" attribute of the clip path shape. This only makes sense
    * for polygon shapes.
    * @param {Array} points The points to be used.
-   * @public
    */
-  SVGClip.prototype.setPoints = function(points) {
+  setPoints = function(points) {
     var str = points.map(function(p) {
       return round(p.x) + ',' + round(p.y);
     }).join(' ');
     setSVGAttribute(this.shape, 'points', str);
   }
+}
 
-  /**
-   * A class that represents a circle.
-   * @param {Point} center The center point.
-   * @param {Point} radius The radius.
-   * @constructor
-   */
-  function Circle (center, radius) {
-    this.center = center;
-    this.radius = radius;
+/**
+ * A class that represents a circle.
+ */
+class Circle {
+  constructor(
+    public center: Point,
+    public radius: number
+  ) {
   }
 
   /**
    * Determines whether a point is contained within the circle.
    * @param {Point} p The point.
    * @returns {boolean}
-   * @public
    */
-  Circle.prototype.containsPoint = function(p) {
+  containsPoint = function(p) {
     if(this.boundingRectContainsPoint(p)) {
         var dx = this.center.x - p.x;
         var dy = this.center.y - p.y;
@@ -1296,9 +1205,8 @@
    * Determines whether a point is contained within the bounding box of the circle.
    * @param {Point} p The point.
    * @returns {boolean}
-   * @private
    */
-  Circle.prototype.boundingRectContainsPoint = function(p) {
+  private boundingRectContainsPoint = function(p) {
     return p.x >= this.center.x - this.radius && p.x <= this.center.x + this.radius &&
            p.y >= this.center.y - this.radius && p.y <= this.center.y + this.radius;
   }
@@ -1308,30 +1216,31 @@
    * Rotated angle from the center point should be the same.
    * @param {Point} p The point.
    * @returns {boolean}
-   * @public
    */
-  Circle.prototype.constrainPoint = function(p) {
+  constrainPoint = function(p) {
     if (!this.containsPoint(p)) {
       var rotation = p.subtract(this.center).getAngle();
       p = this.center.add(new Point(this.radius, 0).rotate(rotation));
     }
     return p;
   }
+}
 
-  /**
-   * A class that represents a polygon.
-   * @constructor
-   */
-  function Polygon() {
+/**
+ * A class that represents a polygon.
+ */
+class Polygon {
+  points: unknown[];
+
+  constructor() {
     this.points = [];
   }
 
   /**
    * Gets the area of the polygon.
    * @param {Array} points The points describing the polygon.
-   * @public
    */
-  Polygon.getArea = function(points) {
+  static getArea = function(points) {
     var sum1 = 0, sum2 = 0;
     points.forEach(function(p, i, arr) {
       var next = arr[(i + 1) % arr.length];
@@ -1344,35 +1253,36 @@
   /**
    * Adds a point to the polygon.
    * @param {Point} point
-   * @public
    */
-  Polygon.prototype.addPoint = function(point) {
+  addPoint = function(point) {
     this.points.push(point);
   }
 
   /**
    * Gets the points of the polygon as an array.
    * @returns {Array}
-   * @public
    */
-  Polygon.prototype.getPoints = function() {
+  getPoints = function() {
     return this.points;
   }
+}
 
-
+/**
+ * A class representing a bezier curve.
+ */
+class BezierCurve {
   /**
-   * A class representing a bezier curve.
-   * @param {Point} p1 The starting point.
-   * @param {Point} c1 The control point of p1.
-   * @param {Point} c2 The control point of p2.
-   * @param {Point} p2 The ending point.
-   * @constructor
+   * @param p1 The starting point.
+   * @param c1 The control point of p1.
+   * @param c2 The control point of p2.
+   * @param p2 The ending point.
    */
-  function BezierCurve (p1, c1, c2, p2) {
-    this.p1 = p1;
-    this.c1 = c1;
-    this.p2 = p2;
-    this.c2 = c2;
+  constructor(
+    public p1: Point,
+    public c1: Point,
+    public c2: Point,
+    public p2: Point
+  ) {
   }
 
   /**
@@ -1380,7 +1290,7 @@
    * @param {number} t The time along the segment, between 0 and 1.
    * @returns {Point}
    */
-  BezierCurve.prototype.getPointForTime = function(t) {
+  getPointForTime = function(t) {
     var b0 = Math.pow(1 - t, 3);
     var b1 = 3 * t * Math.pow(1 - t, 2);
     var b2 = 3 * Math.pow(t, 2) * (1 - t);
@@ -1390,31 +1300,26 @@
     var y = (b0 * this.p1.y) + (b1 * this.c1.y) + (b2 * this.c2.y) + (b3 * this.p2.y)
     return new Point(x, y);
   }
+}
 
-
-  /**
-   * A class that represents a line segment.
-   * @param {Point} p1 The start of the segment.
-   * @param {Point} p2 The end of the segment.
-   * @constructor
-   */
-  function LineSegment (p1, p2) {
-    this.p1 = p1;
-    this.p2 = p2;
+/**
+ * A class that represents a line segment.
+ */
+class LineSegment {
+  constructor(
+    public p1: Point,
+    public p2: Point
+  ) {
   }
 
-  /**
-   * @constant
-   */
-  LineSegment.EPSILON = 1e-6;
+  static readonly EPSILON = 1e-6;
 
   /**
    * Gets a point along the line segment for a given time.
    * @param {number} t The time along the segment, between 0 and 1.
    * @returns {Point}
-   * @public
    */
-  LineSegment.prototype.getPointForTime = function(t) {
+  getPointForTime = function(t) {
     return this.p1.add(this.getVector().scale(t));
   }
 
@@ -1422,9 +1327,8 @@
    * Takes a scalar and returns a new scaled line segment.
    * @param {number} n The amount to scale the segment by.
    * @returns {LineSegment}
-   * @public
    */
-  LineSegment.prototype.scale = function(n) {
+  scale = function(n) {
     var half = 1 + (n / 2);
     var p1 = this.p1.add(this.p2.subtract(this.p1).scale(n));
     var p2 = this.p2.add(this.p1.subtract(this.p2).scale(n));
@@ -1440,9 +1344,8 @@
    * 0 indicates that the point falls exactly on the line.
    * @param {Point} p The point to test against.
    * @returns {number} A signed number.
-   * @public
    */
-  LineSegment.prototype.getPointDeterminant = function(p) {
+  getPointDeterminant = function(p) {
     var d = ((p.x - this.p1.x) * (this.p2.y - this.p1.y)) - ((p.y - this.p1.y) * (this.p2.x - this.p1.x));
     // Tolerance for near-zero.
     if (d > -LineSegment.EPSILON && d < LineSegment.EPSILON) {
@@ -1455,9 +1358,8 @@
    * Calculates the point at which another line segment intersects, if any.
    * @param {LineSegment} seg The second line segment.
    * @returns {Point|null}
-   * @public
    */
-  LineSegment.prototype.getIntersectPoint = function(seg2) {
+  getIntersectPoint = function(seg2) {
     var seg1 = this;
 
     function crossProduct(p1, p2) {
@@ -1488,46 +1390,41 @@
   /**
    * Returns the angle of the line segment in degrees.
    * @returns {number}
-   * @public
    */
-  LineSegment.prototype.getAngle = function() {
+  getAngle = function() {
     return this.getVector().getAngle();
   }
 
   /**
    * Gets the vector that represents the line segment.
    * @returns {Point}
-   * @private
    */
-  LineSegment.prototype.getVector = function() {
+  private getVector = function() {
     if (!this.vector) {
       this.vector = this.p2.subtract(this.p1);
     }
     return this.vector;
   }
+}
 
-  /**
-   * A class representing a point or 2D vector.
-   * @param {number} x The x coordinate.
-   * @param {number} y The y coordinate.
-   * @constructor
-   */
-  function Point (x, y) {
-    this.x = x;
-    this.y = y;
+/**
+ * A class representing a point or 2D vector.
+ */
+class Point {
+  constructor(
+    public x: number,
+    public y: number
+  ) {
   }
 
-  /**
-   * @constant
-   */
-  Point.DEGREES_IN_RADIANS = 180 / Math.PI;
+  static readonly DEGREES_IN_RADIANS = 180 / Math.PI;
 
   /**
    * Gets degrees in radians.
    * @param {number} deg
    * @returns {number}
    */
-  Point.degToRad = function(deg) {
+  static degToRad = function(deg) {
     return deg / Point.DEGREES_IN_RADIANS;
   };
 
@@ -1536,7 +1433,7 @@
    * @param {number} rad
    * @returns {number}
    */
-  Point.radToDeg = function(rad) {
+  static radToDeg = function(rad) {
     var deg = rad * Point.DEGREES_IN_RADIANS;
     while(deg < 0) deg += 360;
     return deg;
@@ -1548,7 +1445,7 @@
    * @param {number} len The length of the vector.
    * @returns {Point}
    */
-  Point.vector = function(deg, len) {
+  static vector = function(deg, len) {
     var rad = Point.degToRad(deg);
     return new Point(Math.cos(rad) * len, Math.sin(rad) * len);
   };
@@ -1558,7 +1455,7 @@
    * @param {Point} p
    * @returns {Point}
    */
-  Point.prototype.add = function(p) {
+  add = function(p) {
     return new Point(this.x + p.x, this.y + p.y);
   };
 
@@ -1567,7 +1464,7 @@
    * @param {Point} p
    * @returns {Point}
    */
-  Point.prototype.subtract = function(p) {
+  subtract = function(p) {
     return new Point(this.x - p.x, this.y - p.y);
   };
 
@@ -1576,7 +1473,7 @@
    * @param {number} n
    * @returns {Point}
    */
-  Point.prototype.scale = function(n) {
+  scale = function(n) {
     return new Point(this.x * n, this.y * n);
   };
 
@@ -1584,7 +1481,7 @@
    * Gets the length of the distance to the point.
    * @returns {number}
    */
-  Point.prototype.getLength = function() {
+  getLength = function() {
     return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
   };
 
@@ -1592,7 +1489,7 @@
    * Gets the angle of the point in degrees.
    * @returns {number}
    */
-  Point.prototype.getAngle = function() {
+  getAngle = function() {
     return Point.radToDeg(Math.atan2(this.y, this.x));
   };
 
@@ -1601,7 +1498,7 @@
    * @param {number} deg The angle in degrees.
    * @returns {Point}
    */
-  Point.prototype.setAngle = function(deg) {
+  setAngle = function(deg) {
     return Point.vector(deg, this.getLength());
   };
 
@@ -1610,11 +1507,7 @@
    * @param {number} deg The amount to rotate by in degrees.
    * @returns {Point}
    */
-  Point.prototype.rotate = function(deg) {
+  rotate = function(deg) {
     return this.setAngle(this.getAngle() + deg);
   };
-
-  setCssProperties();
-  win.Peel = Peel;
-
-})(window);
+}
