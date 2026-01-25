@@ -1,5 +1,13 @@
 {
-    "compilerOptions": {
-        "noImplicitAny": false,
-    },
+  "compilerOptions": {
+    "module": "node18",
+    "target": "es2020",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  }
 }

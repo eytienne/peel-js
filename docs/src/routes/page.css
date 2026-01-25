@@ -1,0 +1,24 @@
+@reference "./layout.css";
+
+h2, h3 {
+    @apply font-bold;
+}
+
+h2 {
+    @apply text-2xl my-3.5;
+}
+
+h3 {
+    @apply text-lg;
+}
+
+
+.peel-layer {
+    @apply flex items-center justify-center;
+}
+
+#static-examples, #dynamic-examples {
+    .peel-layer {
+        @apply text-2xl;
+    }
+}
