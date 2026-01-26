@@ -1,158 +1,158 @@
 
-  const PRECISION       = 1e2; // 2 decimals
-  const SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
+const PRECISION       = 1e2; // 2 decimals
+const SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
 
-  // General helpers
+// General helpers
 
-  function round(n: number) {
-    return Math.round(n * PRECISION) / PRECISION;
+function round(n: number) {
+  return Math.round(n * PRECISION) / PRECISION;
+}
+
+// Clamps the number to be between 0 and 1.
+function clamp(n: number) {
+  return Math.max(0, Math.min(1, n));
+}
+
+function normalize(n: number, min: number, max: number) {
+  return (n - min) / (max - min);
+}
+
+// Distributes a number between 0 and 1 along a bell curve.
+function distribute(t: number, mult: any) {
+  return (mult || 1) * 2 * (.5 - Math.abs(t - .5));
+}
+
+function camelize(str: string) {
+  return str.replace(/-(\w)/g, function(a, b) {
+    return b.toUpperCase();
+  });
+}
+
+function prefix(str: string) {
+  return 'peel-' + str;
+}
+
+// CSS Helper
+function setTransform(el: HTMLElement, t) {
+  el.style.transform = t;
+}
+
+function setBoxShadow(el: HTMLElement, x, y, blur, spread, intensity) {
+  el.style.boxShadow = getShadowCss(x, y, blur, spread, intensity);
+}
+
+function setDropShadow(el: HTMLElement, x, y, blur, intensity) {
+  el.style.filter = 'drop-shadow(' + getShadowCss(x, y, blur, null, intensity) + ')';
+}
+
+function getShadowCss(x, y, blur, spread, intensity) {
+  return round(x) + 'px ' +
+          round(y) + 'px ' +
+          round(blur) + 'px ' +
+          (spread ? round(spread) + 'px ' : '') +
+          'rgba(0,0,0,' + round(intensity) + ')';
+}
+
+function setOpacity(el, t) {
+  el.style.opacity = t;
+}
+
+function setBackgroundGradient(el, rotation, stops) {
+  var css;
+  if (stops.length === 0) {
+    css = 'none';
+  } else {
+    css = 'linear-gradient(' + round(rotation) + 'deg,' + stops.join(',') + ')';
   }
+  el.style.backgroundImage = css;
+}
 
-  // Clamps the number to be between 0 and 1.
-  function clamp(n: number) {
-    return Math.max(0, Math.min(1, n));
+// Event Helpers
+
+function addEvent(el, type, fn) {
+  el.addEventListener(type, fn)
+}
+
+function removeEvent(el, type, fn) {
+  el.removeEventListener(type, fn);
+}
+
+function getEventCoordinates(evt, el) {
+  var pos = evt.changedTouches ? evt.changedTouches[0] : evt;
+  return {
+    'x': pos.clientX - el.offsetLeft + window.scrollX,
+    'y': pos.clientY - el.offsetTop + window.scrollY
   }
+}
 
-  function normalize(n: number, min: number, max: number) {
-    return (n - min) / (max - min);
+function bindWithEvent(fn, scope, arg1, arg2) {
+  return function(evt) {
+    fn.call(scope, evt, arg1, arg2);
   }
+}
 
-  // Distributes a number between 0 and 1 along a bell curve.
-  function distribute(t: number, mult: any) {
-    return (mult || 1) * 2 * (.5 - Math.abs(t - .5));
+// Color Helpers
+
+function getBlackStop(a, pos) {
+  return getColorStop(0, 0, 0, a, pos);
+}
+
+function getWhiteStop(a, pos) {
+  return getColorStop(255, 255, 255, a, pos);
+}
+
+function getColorStop(r, g, b, a, pos) {
+  a = round(clamp(a));
+  return 'rgba('+ r +','+ g +','+ b +','+ a +') ' + round(pos * 100) + '%';
+}
+
+
+// DOM Element Helpers
+
+function getElement(obj: string|HTMLElement, node: Element) {
+  return typeof obj === 'string' ? (node || document).querySelector<HTMLElement>(obj)! : obj;
+}
+
+function createElement(parent, className) {
+  var el = document.createElement('div');
+  addClass(el, className);
+  parent.appendChild(el);
+  return el;
+}
+
+function removeClass(el, str) {
+  el.classList.remove(str);
+}
+
+function addClass(el, str) {
+  el.classList.add(str);
+}
+
+function getZIndex(el) {
+  return el.style.zIndex;
+}
+
+function setZIndex(el, index) {
+  el.style.zIndex = index;
+}
+
+
+// SVG Helpers
+
+function createSVGElement(tag, parent, attributes?: object) {
+  parent = parent || document.documentElement;
+  var el = document.createElementNS(SVG_NAMESPACE, tag);
+  parent.appendChild(el);
+  for (var key in attributes) {
+    if (!attributes.hasOwnProperty(key)) continue;
+    setSVGAttribute(el, key, attributes[key]);
   }
+  return el;
+}
 
-  function camelize(str: string) {
-    return str.replace(/-(\w)/g, function(a, b) {
-      return b.toUpperCase();
-    });
-  }
-
-  function prefix(str: string) {
-    return 'peel-' + str;
-  }
-
-  // CSS Helper
-  function setTransform(el: HTMLElement, t) {
-    el.style.transform = t;
-  }
-
-  function setBoxShadow(el: HTMLElement, x, y, blur, spread, intensity) {
-    el.style.boxShadow = getShadowCss(x, y, blur, spread, intensity);
-  }
-
-  function setDropShadow(el: HTMLElement, x, y, blur, intensity) {
-    el.style.filter = 'drop-shadow(' + getShadowCss(x, y, blur, null, intensity) + ')';
-  }
-
-  function getShadowCss(x, y, blur, spread, intensity) {
-    return round(x) + 'px ' +
-           round(y) + 'px ' +
-           round(blur) + 'px ' +
-           (spread ? round(spread) + 'px ' : '') +
-           'rgba(0,0,0,' + round(intensity) + ')';
-  }
-
-  function setOpacity(el, t) {
-    el.style.opacity = t;
-  }
-
-  function setBackgroundGradient(el, rotation, stops) {
-    var css;
-    if (stops.length === 0) {
-      css = 'none';
-    } else {
-      css = 'linear-gradient(' + round(rotation) + 'deg,' + stops.join(',') + ')';
-    }
-    el.style.backgroundImage = css;
-  }
-
-  // Event Helpers
-
-  function addEvent(el, type, fn) {
-    el.addEventListener(type, fn)
-  }
-
-  function removeEvent(el, type, fn) {
-    el.removeEventListener(type, fn);
-  }
-
-  function getEventCoordinates(evt, el) {
-    var pos = evt.changedTouches ? evt.changedTouches[0] : evt;
-    return {
-      'x': pos.clientX - el.offsetLeft + window.scrollX,
-      'y': pos.clientY - el.offsetTop + window.scrollY
-    }
-  }
-
-  function bindWithEvent(fn, scope, arg1, arg2) {
-    return function(evt) {
-      fn.call(scope, evt, arg1, arg2);
-    }
-  }
-
-  // Color Helpers
-
-  function getBlackStop(a, pos) {
-    return getColorStop(0, 0, 0, a, pos);
-  }
-
-  function getWhiteStop(a, pos) {
-    return getColorStop(255, 255, 255, a, pos);
-  }
-
-  function getColorStop(r, g, b, a, pos) {
-    a = round(clamp(a));
-    return 'rgba('+ r +','+ g +','+ b +','+ a +') ' + round(pos * 100) + '%';
-  }
-
-
-  // DOM Element Helpers
-
-  function getElement(obj: string|HTMLElement, node: Element) {
-    return typeof obj === 'string' ? (node || document).querySelector<HTMLElement>(obj)! : obj;
-  }
-
-  function createElement(parent, className) {
-    var el = document.createElement('div');
-    addClass(el, className);
-    parent.appendChild(el);
-    return el;
-  }
-
-  function removeClass(el, str) {
-    el.classList.remove(str);
-  }
-
-  function addClass(el, str) {
-    el.classList.add(str);
-  }
-
-  function getZIndex(el) {
-    return el.style.zIndex;
-  }
-
-  function setZIndex(el, index) {
-    el.style.zIndex = index;
-  }
-
-
-  // SVG Helpers
-
-  function createSVGElement(tag, parent, attributes?: object) {
-    parent = parent || document.documentElement;
-    var el = document.createElementNS(SVG_NAMESPACE, tag);
-    parent.appendChild(el);
-    for (var key in attributes) {
-      if (!attributes.hasOwnProperty(key)) continue;
-      setSVGAttribute(el, key, attributes[key]);
-    }
-    return el;
-  }
-
-  function setSVGAttribute(el, key, value) {
-    el.setAttributeNS(null, key, value);
-  }
+function setSVGAttribute(el, key, value) {
+  el.setAttributeNS(null, key, value);
+}
 
 
 type PeelEvent = {
