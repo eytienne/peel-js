@@ -1,42 +1,35 @@
 
-  // Constants
-
-  var PRECISION       = 1e2; // 2 decimals
-  var SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
-  var CSS_PREFIX      = 'peel-';
+  const PRECISION       = 1e2; // 2 decimals
+  const SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
 
   // General helpers
 
-  function round(n) {
+  function round(n: number) {
     return Math.round(n * PRECISION) / PRECISION;
   }
 
   // Clamps the number to be between 0 and 1.
-  function clamp(n) {
+  function clamp(n: number) {
     return Math.max(0, Math.min(1, n));
   }
 
-  function normalize(n, min, max) {
+  function normalize(n: number, min: number, max: number) {
     return (n - min) / (max - min);
   }
 
   // Distributes a number between 0 and 1 along a bell curve.
-  function distribute(t, mult) {
+  function distribute(t: number, mult: any) {
     return (mult || 1) * 2 * (.5 - Math.abs(t - .5));
   }
 
-  function capitalize(str) {
-    return str.slice(0,1).toUpperCase() + str.slice(1);
-  }
-
-  function camelize(str) {
+  function camelize(str: string) {
     return str.replace(/-(\w)/g, function(a, b) {
       return b.toUpperCase();
     });
   }
 
-  function prefix(str) {
-    return CSS_PREFIX + str;
+  function prefix(str: string) {
+    return 'peel-' + str;
   }
 
   // CSS Helper
@@ -116,11 +109,8 @@
 
   // DOM Element Helpers
 
-  function getElement(obj: string|Element, node: Element) {
-    if (typeof obj === 'string') {
-      obj = (node || document).querySelector(obj);
-    }
-    return obj;
+  function getElement(obj: string|HTMLElement, node: Element) {
+    return typeof obj === 'string' ? (node || document).querySelector<HTMLElement>(obj)! : obj;
   }
 
   function createElement(parent, className) {
@@ -165,14 +155,49 @@
   }
 
 
+type PeelEvent = {
+  el: Element;
+  type: string;
+  handler: () => void;
+}
+
 /**
  * Main class that controls the peeling effect.
  */
 export class Peel {
-  el: Element;
-  constraints: unknown[];
-  events: Event[];
-  corner: unknown;
+  el: HTMLElement;
+  constraints: Circle[];
+  events: PeelEvent[];
+  corner!: Point;
+  path?: LineSegment|BezierCurve;
+  dragHandler: unknown;
+  pressHandler: unknown;
+  dragEventsSetup: unknown;
+  timeAlongPath = 0;
+  fadeThreshold = 0;
+  peelLineSegment?: LineSegment;
+  peelLineRotation = 0;
+  options: Record<string, unknown> = {};
+  width = 0;
+  height = 0;
+
+  elementBox: any;
+  flipConstraint?: Circle;
+  clippingBox: any;
+  topClip: any;
+  backClip: any;
+  topLayer?: HTMLElement;
+  backLayer!: HTMLElement;
+  bottomLayer?: HTMLElement;
+  topShapeClip?: SVGClip;
+  backShapeClip?: SVGClip;
+  bottomShapeClip?: SVGClip;
+  topShadowElement!: HTMLElement;
+  backShadowElement?: HTMLElement;
+  backReflectionElement?: HTMLElement;
+  bottomShadowElement?: HTMLElement;
+  usesBoxShadow?: boolean;
+  center!: Point;
 
   /**
    * @param {HTMLElement|string} el The main container element (can be query).
@@ -246,14 +271,14 @@ export class Peel {
     } else if (args[0].length) {
       args = args[0];
     }
-    this.corner = this.getPointOrCorner(args);
+    this.corner = this.getPointOrCorner(...args);
   }
 
   /**
    * Sets a pre-defined "mode".
    * @param {string} mode The mode to set.
    */
-  setMode = function(mode) {
+  setMode(mode) {
     if (mode === 'book') {
       // The order of constraints is important here so that the peel line
       // approaches the horizontal smoothly without jumping.
@@ -278,7 +303,7 @@ export class Peel {
    *     bezier curve from p1 to p2 using control points c1 and c2. The first
    *     and last two arguments represent p1 and p2, respectively.
    */
-  setPeelPath = function(x1, y1) {
+  setPeelPath(x1, y1) {
     var args = arguments, p1, p2, c1, c2;
     p1 = new Point(x1, y1);
     if (args.length === 4) {
@@ -304,7 +329,7 @@ export class Peel {
    *     instance. Allowing this to be passed lets another element serve as a
    *     "hit area" that can be larger than the element itself.
    */
-  handleDrag = function(fn, el) {
+  handleDrag(fn, el) {
     this.dragHandler = fn;
     this.setupDragEvents(el);
   }
@@ -321,7 +346,7 @@ export class Peel {
    *     instance. Allowing this to be passed lets another element serve as a
    *     "hit area" that can be larger than the element itself.
    */
-  handlePress = function(fn, el) {
+  handlePress(fn, el) {
     this.pressHandler = fn;
     this.setupDragEvents(el);
   }
@@ -330,7 +355,7 @@ export class Peel {
    * Sets up the drag events needed for both drag and press handlers.
    * @param {HTMLElement} el The element to initiate the dragStart event on.
    */
-  private setupDragEvents = function(el) {
+  private setupDragEvents(el) {
     var self = this, isDragging, moveName, endName;
 
     if (this.dragEventsSetup) {
@@ -379,7 +404,7 @@ export class Peel {
   /**
    * Remove all event handlers previously added to the instance.
    */
-  removeEvents = function() {
+  removeEvents() {
     this.events.forEach(function(e, i) {
       removeEvent(e.el, e.type, e.handler);
     });
@@ -391,9 +416,9 @@ export class Peel {
    * specified path. Will throw an error if no path exists.
    * @param {number} n The time value (between 0 and 1).
    */
-  setTimeAlongPath = function(t) {
+  setTimeAlongPath(t) {
     t = clamp(t);
-    var point = this.path.getPointForTime(t);
+    var point = this.path!.getPointForTime(t);
     this.timeAlongPath = t;
     this.setPeelPosition(point.x, point.y);
   }
@@ -405,7 +430,7 @@ export class Peel {
    * the path instead.
    * @param {number} n A point between 0 and 1.
    */
-  setFadeThreshold = function(n) {
+  setFadeThreshold(n) {
     this.fadeThreshold = n;
   }
 
@@ -414,8 +439,8 @@ export class Peel {
    * of the corner that is being peeled back.
    * @param {Mixed} [...] Either x,y or a corner id.
    */
-  setPeelPosition = function() {
-    var pos = this.getPointOrCorner(arguments);
+  setPeelPosition(...args) {
+    var pos = this.getPointOrCorner(...args);
     pos = this.getConstrainedPeelPosition(pos);
     if (!pos) {
       return;
@@ -440,28 +465,24 @@ export class Peel {
   /**
    * Sets the corner for the peel effect to happen from.
    */
-  addPeelConstraint = function() {
-    var p = this.getPointOrCorner(arguments);
-    var radius = this.corner.subtract(p).getLength();
+  addPeelConstraint(...args) {
+    var p = this.getPointOrCorner(...args);
+    var radius = this.corner!.subtract(p).getLength();
     this.constraints.push(new Circle(p, radius));
     this.calculateFlipConstraint();
   }
 
   /**
    * Sets an option to use for the effect.
-   * @param {string} key The option to set.
-   * @param {Mixed} value The value for the option.
    */
-  setOption = function(key, value) {
+  setOption(key: string, value: unknown) {
     this.options[key] = value;
   }
 
   /**
    * Gets an option set by the user.
-   * @param {string} key The key of the option to get.
-   * @returns {Mixed}
    */
-  getOption = function(key) {
+  getOption(key: string) {
     return this.options[camelize(key)];
   }
 
@@ -469,7 +490,7 @@ export class Peel {
    * Gets the ratio of the area of the clipped top layer to the total area.
    * @returns {number} A value between 0 and 1.
    */
-  getAmountClipped = function() {
+  getAmountClipped() {
     var topArea = this.getTopClipArea();
     var totalArea = this.width * this.height;
     return normalize(topArea, totalArea, 0);
@@ -482,7 +503,7 @@ export class Peel {
    * @param {string} type The event type.
    * @param {Function} fn The handler function.
    */
-  private addEvent = function(el, type, fn) {
+  private addEvent(el, type, fn) {
     addEvent(el, type, fn);
     this.events.push({
       el: el,
@@ -495,9 +516,9 @@ export class Peel {
    * Gets the area of the clipped top layer.
    * @returns {number}
    */
-  private getTopClipArea = function() {
+  private getTopClipArea() {
     var top  = new Polygon();
-    this.elementBox.forEach(function(side) {
+    this.elementBox.forEach((side) => {
       this.distributeLineByPeelLine(side, top);
     }, this);
     return Polygon.getArea(top.getPoints());
@@ -510,12 +531,11 @@ export class Peel {
    * should be required - changing the order of the constraints can help to
    * achieve the proper effect and more than one will interfere with each other.
    */
-  private calculateFlipConstraint = function() {
-    var corner = this.corner, arr = this.constraints.concat();
-    this.flipConstraint = arr.sort(function(a, b) {
-      var aY = corner.y - a.center.y;
-      var bY = corner.y - b.center.y;
-      return a - b;
+  private calculateFlipConstraint() {
+    this.flipConstraint = this.constraints.slice().sort((a, b) => {
+      var aY = this.corner.y - a.center.y;
+      var bY = this.corner.y - b.center.y;
+      return aY - bY;
     })[0];
   }
 
@@ -525,7 +545,7 @@ export class Peel {
    * @param {string} type The event type, "mouse" or "touch".
    * @param {Function} fn The handler function to be called on drag.
    */
-  private dragStart = function(evt, type, fn) {
+  private dragStart(evt, type, fn) {
   }
 
   /**
@@ -533,7 +553,7 @@ export class Peel {
    * @param {Event} evt The original event.
    * @param {Function} fn The handler to call.
    */
-  private fireHandler = function(evt, fn) {
+  private fireHandler(evt, fn) {
     var coords = getEventCoordinates(evt, this.el);
     fn.call(this, evt, coords.x, coords.y);
   }
@@ -542,10 +562,10 @@ export class Peel {
    * Sets the clipping points of the top and back layers based on a line
    * segment that represents the peel line.
    */
-  private setClipping = function() {
+  private setClipping() {
     var top  = new Polygon();
     var back = new Polygon();
-    this.clippingBox.forEach(function(side) {
+    this.clippingBox.forEach((side) => {
       this.distributeLineByPeelLine(side, top, back);
     }, this);
 
@@ -560,8 +580,8 @@ export class Peel {
    * @param {Polygon} poly1 The first polygon.
    * @param {Polygon} [poly2] The second polygon.
    */
-  private distributeLineByPeelLine = function(seg, poly1, poly2) {
-    var intersect = this.peelLineSegment.getIntersectPoint(seg);
+  private distributeLineByPeelLine(seg: LineSegment, poly1: Polygon, poly2?: Polygon) {
+    var intersect = this.peelLineSegment!.getIntersectPoint(seg);
     this.distributePointByPeelLine(seg.p1, poly1, poly2);
     this.distributePointByPeelLine(intersect, poly1, poly2);
   }
@@ -574,9 +594,9 @@ export class Peel {
    * @param {Polygon} poly1 The first polygon.
    * @param {Polygon} [poly2] The second polygon.
    */
-  private distributePointByPeelLine = function(p, poly1, poly2) {
+  private distributePointByPeelLine(p: Point|null, poly1: Polygon, poly2?: Polygon) {
     if (!p) return;
-    var d = this.peelLineSegment.getPointDeterminant(p);
+    var d = this.peelLineSegment!.getPointDeterminant(p);
     if (d <= 0) {
       poly1.addPoint(p);
     }
@@ -589,7 +609,7 @@ export class Peel {
    * Sets the options for the effect, merging in defaults.
    * @param {Object} opt User options.
    */
-  private setOptions = function(opt) {
+  private setOptions(opt) {
     var options = opt || {}, defaults = Peel.Defaults;
     for (var key in defaults) {
       if (!defaults.hasOwnProperty(key) || key in options) {
@@ -607,10 +627,10 @@ export class Peel {
    * @param {numer} zIndex The z index of the layer.
    * @returns {HTMLElement}
    */
-  private findOrCreateLayer = function(id, parent, zIndex) {
+  private findOrCreateLayer(id, parent, zIndex) {
     var optId = id + '-element';
     var domId = prefix(id);
-    var el = getElement(this.getOption(optId) || '.' + domId, parent);
+    var el = getElement(this.getOption(optId) as string || ('.' + domId), parent);
     if (!el) {
       el = createElement(parent, domId);
     }
@@ -625,7 +645,7 @@ export class Peel {
    * @param {Arguments} args The arguments object from the original function.
    * @returns {Point}
    */
-  private getPointOrCorner = function(args) {
+  private getPointOrCorner(...args) {
     if (args.length === 2) {
       return new Point(args[0], args[1]);
     } else if(typeof args[0] === 'number') {
@@ -638,7 +658,7 @@ export class Peel {
    * Returns a corner point based on an id defined in Peel.Corners.
    * @param {number} id The id of the corner.
    */
-  private getCornerPoint = function(id) {
+  private getCornerPoint(id) {
     var x = +!!(id & 1) * this.width;
     var y = +!!(id & 2) * this.height;
     return new Point(x, y);
@@ -648,9 +668,9 @@ export class Peel {
    * Gets an optional clipping shape that may be set by the user.
    * @returns {Object}
    */
-  private getOptionalShape = function() {
+  private getOptionalShape() {
     var shapes = ['rect', 'polygon', 'path', 'circle'], found;
-    shapes.some(function(type) {
+    shapes.some((type) => {
       var attr = this.getOption(type), obj;
       if (attr) {
         obj = {};
@@ -667,7 +687,7 @@ export class Peel {
    * Sets up the main layers used for the effect that may include a possible
    * subclip shape.
    */
-  private setupLayers = function() {
+  private setupLayers() {
     var shape = this.getOptionalShape();
 
     // The inner layers may be wrapped later, so keep a reference to them here.
@@ -715,7 +735,7 @@ export class Peel {
    * @param {HTMLElement} parent The parent element where the layer will be added.
    * @returns {SVGElement}
    */
-  private setupDropShadow = function(shape, parent) {
+  private setupDropShadow(shape, parent) {
     var svg = createSVGElement('svg', parent, {
       'class': prefix('layer')
     });
@@ -730,7 +750,7 @@ export class Peel {
    * @param {string} id The identifier for the new layer that will wrap the element.
    * @returns {HTMLElement} The new element that wraps the shape layer.
    */
-  private wrapShapeLayer = function(el, id) {
+  private wrapShapeLayer(el, id) {
     var zIndex = getZIndex(el);
     addClass(el, prefix('shape-layer'));
     var outerLayer = this.findOrCreateLayer(id, this.el, zIndex);
@@ -742,8 +762,8 @@ export class Peel {
    * Sets up the dimensions of the element box and clipping box that area used
    * in the effect.
    */
-  private setupDimensions = function() {
-    this.width  = this.el.offsetWidth;
+  private setupDimensions() {
+    this.width = this.el.offsetWidth;
     this.height = this.el.offsetHeight;
     this.center = new Point(this.width / 2, this.height / 2);
 
@@ -756,7 +776,7 @@ export class Peel {
    * element.
    * @param {number} scale The scale for the box to be.
    */
-  private getScaledBox = function(scale) {
+  private getScaledBox(scale) {
 
     // Box scale is equal to:
     // 1 * the bottom/right scale
@@ -782,8 +802,8 @@ export class Peel {
    * @param {Point} point The peel position to be constrained.
    * @returns {Point}
    */
-  private getConstrainedPeelPosition = function(pos) {
-    this.constraints.forEach(function(area) {
+  private getConstrainedPeelPosition(pos) {
+    this.constraints.forEach((area) => {
       var offset = this.getFlipConstraintOffset(area, pos);
       if (offset) {
         area = new Circle(area.center, area.radius - offset);
@@ -801,8 +821,8 @@ export class Peel {
    * @param {Point} point The peel position to be constrained.
    * @returns {number|undefined}
    */
-  private getFlipConstraintOffset = function(area, pos) {
-    var offset = this.getOption('flipConstraintOffset');
+  private getFlipConstraintOffset(area, pos) {
+    const offset = this.getOption('flipConstraintOffset') as number;
     if (area === this.flipConstraint && offset) {
       var cornerToCenter = this.corner.subtract(this.center);
       var cornerToConstraint = this.corner.subtract(area.center);
@@ -832,7 +852,7 @@ export class Peel {
    * @param {Point} point The position of the peel corner.
    * @returns {LineSegment}
    */
-  private getPeelLineSegment = function(point) {
+  private getPeelLineSegment(point) {
     // The point midway between the peel position and the corner.
     var halfToCorner = this.corner.subtract(point).scale(.5);
     var midpoint = point.add(halfToCorner);
@@ -854,7 +874,7 @@ export class Peel {
    * Sets the transform of the back layer.
    * @param {Point} pos The position of the peeling corner.
    */
-  private setBackTransform = function(pos) {
+  private setBackTransform(pos) {
     var mirroredCorner = this.flipPointHorizontally(this.corner);
     var r = (this.peelLineRotation - 90) * 2;
     var t = pos.subtract(mirroredCorner.rotate(r));
@@ -874,7 +894,7 @@ export class Peel {
    * has advanced along that line.
    * @returns {number} A position >= 0.
    */
-  private getPeelLineDistance = function() {
+  private getPeelLineDistance() {
     var cornerId, opposingCornerId, corner, opposingCorner;
     if (this.peelLineRotation < 90) {
       cornerId = Peel.Corners.TOP_RIGHT;
@@ -895,7 +915,7 @@ export class Peel {
     // Scale the line segment past the original corners so that the effects
     // can have a nice fadeout even past 1.
     var cornerToCorner = new LineSegment(corner, opposingCorner).scale(2);
-    var intersect = this.peelLineSegment.getIntersectPoint(cornerToCorner);
+    var intersect = this.peelLineSegment!.getIntersectPoint(cornerToCorner);
     if (!intersect) {
       // If there is no intersect, then assume that it has run past the opposing
       // corner and set the distance to well past the full distance.
@@ -909,7 +929,7 @@ export class Peel {
   /**
    * Sets shadows and fade effects.
    */
-  private setEffects = function() {
+  private setEffects() {
     var t = this.getPeelLineDistance();
     this.setTopShadow(t);
     this.setBackShadow(t);
@@ -922,7 +942,7 @@ export class Peel {
    * Sets the top shadow as either a box-shadow or a drop-shadow filter.
    * @param {number} t Position of the peel line from corner to corner.
    */
-  private setTopShadow = function(t) {
+  private setTopShadow(t) {
     if (!this.getOption('topShadow')) {
       return;
     }
@@ -945,7 +965,7 @@ export class Peel {
    * @param {number} mult A multiplier for the result.
    * @returns {number}
    */
-  private distributeOrLinear = function(n, dist, mult) {
+  private distributeOrLinear(n, dist, mult) {
     if (dist) {
       return distribute(n, mult);
     } else {
@@ -961,7 +981,7 @@ export class Peel {
    * @param {number} mult A multiplier for the result.
    * @returns {number}
    */
-  private exponential = function(n, exp, mult) {
+  private exponential(n, exp, mult) {
     return mult * clamp(Math.pow(1 + n, exp) - 1);
   }
 
@@ -969,13 +989,13 @@ export class Peel {
    * Sets reflection of the back face as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
    */
-  private setBackReflection = function(t) {
-    var stops = [];
+  private setBackReflection(t) {
+    const stops: string[] = [];
     if (this.canSetLinearEffect('backReflection', t)) {
 
       var rDistribute = this.getOption('backReflectionDistribute');
       var rSize = this.getOption('backReflectionSize');
-      var rOffset = this.getOption('backReflectionOffset');
+      var rOffset = this.getOption('backReflectionOffset') as number;
       var rAlpha = this.getOption('backReflectionAlpha');
 
       var reflectionSize = this.distributeOrLinear(t, rDistribute, rSize);
@@ -995,12 +1015,12 @@ export class Peel {
    * Sets shadow of the back face as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
    */
-  private setBackShadow = function(t) {
-    var stops = [];
+  private setBackShadow(t) {
+    const stops: string[] = [];
     if (this.canSetLinearEffect('backShadow', t)) {
 
       var sSize       = this.getOption('backShadowSize');
-      var sOffset     = this.getOption('backShadowOffset');
+      var sOffset     = this.getOption('backShadowOffset') as number;
       var sAlpha      = this.getOption('backShadowAlpha');
       var sDistribute = this.getOption('backShadowDistribute');
 
@@ -1021,13 +1041,13 @@ export class Peel {
    * Sets the bottom shadow as a linear gradient.
    * @param {number} t Position of the peel line from corner to corner.
    */
-  private setBottomShadow = function(t) {
-    var stops = [];
+  private setBottomShadow(t) {
+    const stops: string[] = [];
     if (this.canSetLinearEffect('bottomShadow', t)) {
 
       // Options
-      var sSize = this.getOption('bottomShadowSize');
-      var offset = this.getOption('bottomShadowOffset');
+      var sSize = this.getOption('bottomShadowSize') as number;
+      var offset = this.getOption('bottomShadowOffset') as number;
       var darkAlpha = this.getOption('bottomShadowDarkAlpha');
       var lightAlpha = this.getOption('bottomShadowLightAlpha');
       var sDistribute = this.getOption('bottomShadowDistribute');
@@ -1035,13 +1055,13 @@ export class Peel {
       var darkShadowStart = t - (.025 - offset);
       var midShadowStart = darkShadowStart - (this.distributeOrLinear(t, sDistribute, .03) * sSize) - offset;
       var lightShadowStart = midShadowStart - ((.02 * sSize) - offset);
-      stops = [
+      stops.push(
         getBlackStop(0, 0),
         getBlackStop(0, lightShadowStart),
         getBlackStop(lightAlpha, midShadowStart),
         getBlackStop(lightAlpha, darkShadowStart),
         getBlackStop(darkAlpha, t)
-      ];
+      );
     }
     setBackgroundGradient(this.bottomShadowElement, this.peelLineRotation + 180, stops);
   }
@@ -1052,14 +1072,14 @@ export class Peel {
    * @param {number} t Current position of the linear effect line.
    * @returns {boolean}
    */
-  private canSetLinearEffect = function(name, t) {
+  private canSetLinearEffect(name, t) {
     return this.getOption(name) && t > 0;
   }
 
   /**
    * Sets the fading effect of the top layer, if a threshold is set.
    */
-  private setFade = function() {
+  private setFade() {
     var threshold = this.fadeThreshold, opacity = 1, n;
     if (threshold) {
       if (this.timeAlongPath !== undefined) {
@@ -1081,14 +1101,14 @@ export class Peel {
    * @param {Array} points The points to be flipped.
    * @returns {Array}
    */
-  private flipPointHorizontally = function(p) {
+  private flipPointHorizontally(p) {
     return new Point(p.x - ((p.x - this.center.x) * 2), p.y);
   }
 
   /**
    * Post setup initialization.
    */
-  private init = function() {
+  private init() {
     if (this.getOption('setPeelOnInit')) {
       this.setPeelPosition(this.corner);
     }
@@ -1102,6 +1122,8 @@ export class Peel {
 class SVGClip {
   el: HTMLElement;
   shape: unknown;
+  static defs: any;
+  static svg: Element;
 
   /**
    * @param {HTMLElement} el The element to be clipped.
@@ -1122,7 +1144,7 @@ class SVGClip {
    * clip paths.
    * @returns {SVGElement}
    */
-  static getDefs = function() {
+  static getDefs() {
     if (!this.defs) {
       this.svg  = createSVGElement('svg', null, {
         'class': prefix('svg-clip-element')
@@ -1153,7 +1175,7 @@ class SVGClip {
   /**
    * Gets the next svg clipping id.
    */
-  static getId = function() {
+  static getId() {
     if (!SVGClip.id) {
       SVGClip.id = 1;
     }
@@ -1165,7 +1187,7 @@ class SVGClip {
    * for polygon shapes.
    * @param {Array} points The points to be used.
    */
-  setPoints = function(points) {
+  setPoints(points) {
     var str = points.map(function(p) {
       return round(p.x) + ',' + round(p.y);
     }).join(' ');
@@ -1188,7 +1210,7 @@ class Circle {
    * @param {Point} p The point.
    * @returns {boolean}
    */
-  containsPoint = function(p) {
+  containsPoint(p) {
     if(this.boundingRectContainsPoint(p)) {
         var dx = this.center.x - p.x;
         var dy = this.center.y - p.y;
@@ -1206,7 +1228,7 @@ class Circle {
    * @param {Point} p The point.
    * @returns {boolean}
    */
-  private boundingRectContainsPoint = function(p) {
+  private boundingRectContainsPoint(p) {
     return p.x >= this.center.x - this.radius && p.x <= this.center.x + this.radius &&
            p.y >= this.center.y - this.radius && p.y <= this.center.y + this.radius;
   }
@@ -1217,7 +1239,7 @@ class Circle {
    * @param {Point} p The point.
    * @returns {boolean}
    */
-  constrainPoint = function(p) {
+  constrainPoint(p) {
     if (!this.containsPoint(p)) {
       var rotation = p.subtract(this.center).getAngle();
       p = this.center.add(new Point(this.radius, 0).rotate(rotation));
@@ -1240,7 +1262,7 @@ class Polygon {
    * Gets the area of the polygon.
    * @param {Array} points The points describing the polygon.
    */
-  static getArea = function(points) {
+  static getArea(points) {
     var sum1 = 0, sum2 = 0;
     points.forEach(function(p, i, arr) {
       var next = arr[(i + 1) % arr.length];
@@ -1254,7 +1276,7 @@ class Polygon {
    * Adds a point to the polygon.
    * @param {Point} point
    */
-  addPoint = function(point) {
+  addPoint(point) {
     this.points.push(point);
   }
 
@@ -1262,7 +1284,7 @@ class Polygon {
    * Gets the points of the polygon as an array.
    * @returns {Array}
    */
-  getPoints = function() {
+  getPoints() {
     return this.points;
   }
 }
@@ -1290,7 +1312,7 @@ class BezierCurve {
    * @param {number} t The time along the segment, between 0 and 1.
    * @returns {Point}
    */
-  getPointForTime = function(t) {
+  getPointForTime(t) {
     var b0 = Math.pow(1 - t, 3);
     var b1 = 3 * t * Math.pow(1 - t, 2);
     var b2 = 3 * Math.pow(t, 2) * (1 - t);
@@ -1306,6 +1328,8 @@ class BezierCurve {
  * A class that represents a line segment.
  */
 class LineSegment {
+  vector?: Point;
+
   constructor(
     public p1: Point,
     public p2: Point
@@ -1319,7 +1343,7 @@ class LineSegment {
    * @param {number} t The time along the segment, between 0 and 1.
    * @returns {Point}
    */
-  getPointForTime = function(t) {
+  getPointForTime(t) {
     return this.p1.add(this.getVector().scale(t));
   }
 
@@ -1328,7 +1352,7 @@ class LineSegment {
    * @param {number} n The amount to scale the segment by.
    * @returns {LineSegment}
    */
-  scale = function(n) {
+  scale(n) {
     var half = 1 + (n / 2);
     var p1 = this.p1.add(this.p2.subtract(this.p1).scale(n));
     var p2 = this.p2.add(this.p1.subtract(this.p2).scale(n));
@@ -1345,7 +1369,7 @@ class LineSegment {
    * @param {Point} p The point to test against.
    * @returns {number} A signed number.
    */
-  getPointDeterminant = function(p) {
+  getPointDeterminant(p) {
     var d = ((p.x - this.p1.x) * (this.p2.y - this.p1.y)) - ((p.y - this.p1.y) * (this.p2.x - this.p1.x));
     // Tolerance for near-zero.
     if (d > -LineSegment.EPSILON && d < LineSegment.EPSILON) {
@@ -1359,7 +1383,7 @@ class LineSegment {
    * @param {LineSegment} seg The second line segment.
    * @returns {Point|null}
    */
-  getIntersectPoint = function(seg2) {
+  getIntersectPoint(seg2) {
     var seg1 = this;
 
     function crossProduct(p1, p2) {
@@ -1391,7 +1415,7 @@ class LineSegment {
    * Returns the angle of the line segment in degrees.
    * @returns {number}
    */
-  getAngle = function() {
+  getAngle() {
     return this.getVector().getAngle();
   }
 
@@ -1399,7 +1423,7 @@ class LineSegment {
    * Gets the vector that represents the line segment.
    * @returns {Point}
    */
-  private getVector = function() {
+  private getVector() {
     if (!this.vector) {
       this.vector = this.p2.subtract(this.p1);
     }
@@ -1424,7 +1448,7 @@ class Point {
    * @param {number} deg
    * @returns {number}
    */
-  static degToRad = function(deg) {
+  static degToRad(deg) {
     return deg / Point.DEGREES_IN_RADIANS;
   };
 
@@ -1433,7 +1457,7 @@ class Point {
    * @param {number} rad
    * @returns {number}
    */
-  static radToDeg = function(rad) {
+  static radToDeg(rad) {
     var deg = rad * Point.DEGREES_IN_RADIANS;
     while(deg < 0) deg += 360;
     return deg;
@@ -1445,7 +1469,7 @@ class Point {
    * @param {number} len The length of the vector.
    * @returns {Point}
    */
-  static vector = function(deg, len) {
+  static vector(deg, len) {
     var rad = Point.degToRad(deg);
     return new Point(Math.cos(rad) * len, Math.sin(rad) * len);
   };
@@ -1455,7 +1479,7 @@ class Point {
    * @param {Point} p
    * @returns {Point}
    */
-  add = function(p) {
+  add(p) {
     return new Point(this.x + p.x, this.y + p.y);
   };
 
@@ -1464,7 +1488,7 @@ class Point {
    * @param {Point} p
    * @returns {Point}
    */
-  subtract = function(p) {
+  subtract(p) {
     return new Point(this.x - p.x, this.y - p.y);
   };
 
@@ -1473,7 +1497,7 @@ class Point {
    * @param {number} n
    * @returns {Point}
    */
-  scale = function(n) {
+  scale(n) {
     return new Point(this.x * n, this.y * n);
   };
 
@@ -1481,7 +1505,7 @@ class Point {
    * Gets the length of the distance to the point.
    * @returns {number}
    */
-  getLength = function() {
+  getLength() {
     return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
   };
 
@@ -1489,7 +1513,7 @@ class Point {
    * Gets the angle of the point in degrees.
    * @returns {number}
    */
-  getAngle = function() {
+  getAngle() {
     return Point.radToDeg(Math.atan2(this.y, this.x));
   };
 
@@ -1498,7 +1522,7 @@ class Point {
    * @param {number} deg The angle in degrees.
    * @returns {Point}
    */
-  setAngle = function(deg) {
+  setAngle(deg) {
     return Point.vector(deg, this.getLength());
   };
 
@@ -1507,7 +1531,7 @@ class Point {
    * @param {number} deg The amount to rotate by in degrees.
    * @returns {Point}
    */
-  rotate = function(deg) {
+  rotate(deg) {
     return this.setAngle(this.getAngle() + deg);
   };
 }
