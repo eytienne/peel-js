@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "node18",
+    "module": "es2020",
     "target": "es2020",
     "strict": true,
     "verbatimModuleSyntax": true,
@@ -8,6 +8,7 @@
     "sourceMap": true,
     "declarationMap": true,
     "rootDir": "src",
-    "outDir": "dist"
-  }
+    "outDir": "dist",
+  },
+  "include": ["src/**/*"],
 }

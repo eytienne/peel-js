@@ -115,18 +115,18 @@ span.code {
 
 
 #intro-peel .peel-top {
-  background: url(../images/texture-1.png) no-repeat;
+  background: url(/images/texture-1.png) no-repeat;
   background-size: cover;
   text-indent: -10000px;
 }
 
 #intro-peel .peel-back {
-  background: url(../images/texture-2.png) no-repeat;
+  background: url(/images/texture-2.png) no-repeat;
   background-size: cover;
 }
 
 #intro-peel .peel-bottom {
-  background: url(../images/texture-3.png) no-repeat;
+  background: url(/images/texture-3.png) no-repeat;
   background-size: cover;
   line-height: 1.3em;
   text-align: center;

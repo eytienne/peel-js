@@ -1,0 +1,44 @@
+name: Publish lib
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+
+concurrency:
+  group: "publish-lib"
+  cancel-in-progress: false
+
+jobs:
+  build-lib:
+    uses: ./.github/workflows/build-lib.yml
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build-lib
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist
+
+      - run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

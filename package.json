@@ -3,12 +3,25 @@
   "version": "1.0.0",
   "description": "Javascript micro library for creating peeling effects using just HTML5",
   "exports": {
-    ".": "./src/peel.ts",
+    ".": "./dist/peel.js",
     "./style": "./src/peel.css"
   },
-  "files": ["./src/*"],
+  "types": "./dist/peel.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "./dist",
+    "./src",
+    "./LICENSE",
+    "./package.json",
+    "./README.md"
+  ],
   "keywords": [],
   "author": "eytienne",
   "license": "MIT",
-  "packageManager": "pnpm@10.28.0"
+  "packageManager": "pnpm@10.28.0",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
