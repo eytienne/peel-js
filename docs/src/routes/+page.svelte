@@ -46,7 +46,7 @@
 		}
 		{
 			const p = new Peel('#top-left', {
-			corner: Peel.Corners.TOP_LEFT
+				corner: Peel.Corners.TOP_LEFT
 			});
 			p.setPeelPosition(80, 70);
 		}
@@ -96,7 +96,7 @@
 				d: 'M101.260605,31.4241113 C122.403839,-11.2687842 173.108983,1.11145064 183.007355,11.8447551 C237.311569,70.7295532 142.521446,119.347653 101.260608,174.571349 C51.8099036,119.347653 -39.0680406,68.307428 18.4502396,11.8447553 C33.183089,-2.61770866 77.7850024,-11.2687842 101.260605,31.4241113 Z'
 				}
 			});
-			p.setCorner(101, 175);
+			p.corner = p.getPoint(101, 175);
 			p.handleDrag(function(evt, x, y) {
 				this.setPeelPosition(x, y);
 			});
@@ -110,7 +110,7 @@
 		}
 		{
 			const p = new Peel('#book');
-			p.setMode('book');
+			p.applyPreset('book');
 			p.handleDrag(function(evt, x, y) {
 			this.setPeelPosition(x, y);
 			});
@@ -126,10 +126,10 @@
 			const p = new Peel('#fade-out');
 			p.setFadeThreshold(.9);
 			p.handleDrag(function(evt, x, y) {
-			this.setPeelPosition(x, y);
-			if (p.getAmountClipped() === 1) {
-			p.removeEvents();
-			}
+				this.setPeelPosition(x, y);
+				if (p.getAmountClipped() === 1) {
+					p.removeEvents();
+				}
 			});
 		}
 		{
@@ -142,7 +142,7 @@
 		}
 		{
 			const p = new Peel('#peel-curve');
-			p.setMode('book');
+			p.applyPreset('book');
 			p.setPeelPath(130, 160, 50, 60, -70, 210, -130, 160);
 			p.handleDrag(function(evt, x, y) {
 			const t = (x - p.width) / (-p.width * 2);
@@ -151,7 +151,7 @@
 		}
 		{
 			const p = new Peel('#peel-press');
-			p.setMode('book');
+			p.applyPreset('book');
 			p.setPeelPath(130, 160, 50, 60, -70, 210, -130, 160);
 			const tween = new Tween(0, {
 				easing: sineOut,
@@ -221,7 +221,7 @@
 			<p class="demo-description">
 				Simplest possible example. 3 elements define the 3 layers used. A constructor sets up the effect, and a call to setPeelPosition tells it where to peel back to:
 			</p>
-			<div id="simple" class="peel" active-html>
+			<div id="simple" class="peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -232,7 +232,7 @@
 			<p class="demo-description">
 				Any corner can be used for the peel effect:
 			</p>
-			<div id="top-left" class="yellow peel" active-html>
+			<div id="top-left" class="yellow peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -243,7 +243,7 @@
 			<p class="demo-description">
 				The shadow effects can be controlled through various options to the constructor (options listed below):
 			</p>
-			<div id="shadows" class="purple peel" active-html>
+			<div id="shadows" class="purple peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -254,7 +254,7 @@
 			<p class="demo-description">
 				Adding a back reflection gives the peel a shiny effect. Reflection strength can be controller in the constructor options (see below):
 			</p>
-			<div id="reflection" class="azure peel" active-html>
+			<div id="reflection" class="azure peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -265,7 +265,7 @@
 			<p class="demo-description">
 				SVG shapes can also be used for clipping effects:
 			</p>
-			<div id="circle" class="aqua peel" active-html>
+			<div id="circle" class="aqua peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -276,7 +276,7 @@
 			<p class="demo-description">
 				More complex shapes such as paths can create custom shapes:
 			</p>
-			<div id="heart" class="heart peel" active-html>
+			<div id="heart" class="heart peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -292,7 +292,7 @@
 			<p class="demo-description">
 				Allowing the user to drag the effect by mouse or touch.
 			</p>
-			<div id="dragging" class="azure peel" active-html>
+			<div id="dragging" class="azure peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -303,7 +303,7 @@
 			<p class="demo-description">
 				Dragging works on custom shapes as well. Note that the corner point can be set anywhere, allowing the effect to precisely follow the mouse cursor.
 			</p>
-			<div id="heart-drag" class="heart peel" active-html>
+			<div id="heart-drag" class="heart peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -314,7 +314,7 @@
 			<p class="demo-description">
 				The peeling effect can be constrained at any point. This can be thought of as a point on the layers that are connected and cannot be torn apart:
 			</p>
-			<div id="constraint" class="yellow peel" active-html>
+			<div id="constraint" class="yellow peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -325,7 +325,7 @@
 			<p class="demo-description">
 				Any number of corners can be constrained. Most often this is used to create a book-like effect, which there is a shortcut for:
 			</p>
-			<div id="book" class="book peel" active-html>
+			<div id="book" class="book peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -336,7 +336,7 @@
 			<p class="demo-description">
 				The top layer can be faded out past a threshold which represents the clipped area of the top layer.
 			</p>
-			<div id="fade" class="plum peel" active-html>
+			<div id="fade" class="plum peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -347,7 +347,7 @@
 			<p class="demo-description">
 				Using the <span class="code">getAmountClipped</span> method gives you greater control over behavior, such as stopping the effect after the top layer has been removed.
 			</p>
-			<div id="fade-out" class="purple peel" active-html>
+			<div id="fade-out" class="purple peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -358,7 +358,7 @@
 			<p class="demo-description">
 				Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
 			</p>
-			<div id="peel-path" class="aqua peel" active-html>
+			<div id="peel-path" class="aqua peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -369,7 +369,7 @@
 			<p class="demo-description">
 				Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
 			</p>
-			<div id="peel-curve" class="book peel" active-html>
+			<div id="peel-curve" class="book peel">
 				<div class="peel-top">Top</div>
 				<div class="peel-back">Back</div>
 				<div class="peel-bottom">Bottom</div>
@@ -381,7 +381,7 @@
 				Since the peel path can be set simply with values between 0 and 1, that means that any animation library can tween those values to give a nice animated effect using <span class="code">setTimeAlongPath</span>.
 			</p>
 			<div class="tap-me book">
-				<div id="peel-press" class="book peel" active-html>
+				<div id="peel-press" class="book peel">
 					<div class="peel-top">Top</div>
 					<div class="peel-back">Back</div>
 					<div class="peel-bottom">Bottom</div>
@@ -394,7 +394,7 @@
 				If you use <span class="code">setFadeThreshold</span> with a peel path, the threshold will be along the peel path instead of using the calculated area of the clipping effect.
 			</p>
 			<div class="tap-me azure">
-				<div id="peel-fade-path" class="azure peel" active-html>
+				<div id="peel-fade-path" class="azure peel">
 					<div class="peel-top">Top</div>
 					<div class="peel-back">Back</div>
 					<div class="peel-bottom">Bottom</div>
@@ -464,9 +464,9 @@
 							</p>
 						</li>
 						<li>
-							<h4 class="method-name">setMode(mode)</h4>
+							<h4 class="method-name">applyPreset(preset)</h4>
 							<p class="method-description">
-								A shortcut for setting a predefined "mode". Currently "book" and "calendar".
+								A shortcut for setting a preset. Currently "book" and "calendar".
 							</p>
 						</li>
 						<li>

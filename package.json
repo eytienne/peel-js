@@ -8,7 +8,8 @@
   },
   "types": "./dist/peel.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "watch": "tsc --watch"
   },
   "files": [
     "./dist",
@@ -20,8 +21,9 @@
   "keywords": [],
   "author": "eytienne",
   "license": "MIT",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.2",
   "devDependencies": {
+    "type-fest": "^5.4.2",
     "typescript": "^5.9.3"
   }
 }

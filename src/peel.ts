@@ -1,17 +1,13 @@
+import type { TupleOf } from "type-fest";
 
 const PRECISION       = 1e2; // 2 decimals
 const SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
 
 // General helpers
 
-function round(n: number) {
-  return Math.round(n * PRECISION) / PRECISION;
-}
+const round = (n: number) => Math.round(n * PRECISION) / PRECISION;
 
-// Clamps the number to be between 0 and 1.
-function clamp(n: number) {
-  return Math.max(0, Math.min(1, n));
-}
+const clamp = (n: number) => Math.max(0, Math.min(1, n));
 
 function normalize(n: number, min: number, max: number) {
   return (n - min) / (max - min);
@@ -20,12 +16,6 @@ function normalize(n: number, min: number, max: number) {
 // Distributes a number between 0 and 1 along a bell curve.
 function distribute(t: number, mult: any) {
   return (mult || 1) * 2 * (.5 - Math.abs(t - .5));
-}
-
-function camelize(str: string) {
-  return str.replace(/-(\w)/g, function(a, b) {
-    return b.toUpperCase();
-  });
 }
 
 function prefix(str: string) {
@@ -37,20 +27,20 @@ function setTransform(el: HTMLElement, t) {
   el.style.transform = t;
 }
 
-function setBoxShadow(el: HTMLElement, x, y, blur, spread, intensity) {
-  el.style.boxShadow = getShadowCss(x, y, blur, spread, intensity);
+function setBoxShadow(el: HTMLElement, x: number, y: number, blur: number, spread: number | null, alpha: number) {
+  el.style.boxShadow = getShadowCss(x, y, blur, spread, alpha);
 }
 
-function setDropShadow(el: HTMLElement, x, y, blur, intensity) {
-  el.style.filter = 'drop-shadow(' + getShadowCss(x, y, blur, null, intensity) + ')';
+function setDropShadow(el: HTMLElement, x: number, y: number, blur: number, alpha: number) {
+  el.style.filter = 'drop-shadow(' + getShadowCss(x, y, blur, null, alpha) + ')';
 }
 
-function getShadowCss(x, y, blur, spread, intensity) {
+function getShadowCss(x: number, y: number, blur: number, spread: number | null, alpha: number) {
   return round(x) + 'px ' +
           round(y) + 'px ' +
           round(blur) + 'px ' +
           (spread ? round(spread) + 'px ' : '') +
-          'rgba(0,0,0,' + round(intensity) + ')';
+          'rgba(0,0,0,' + round(alpha) + ')';
 }
 
 function setOpacity(el, t) {
@@ -85,12 +75,6 @@ function getEventCoordinates(evt, el) {
   }
 }
 
-function bindWithEvent(fn, scope, arg1, arg2) {
-  return function(evt) {
-    fn.call(scope, evt, arg1, arg2);
-  }
-}
-
 // Color Helpers
 
 function getBlackStop(a, pos) {
@@ -109,33 +93,12 @@ function getColorStop(r, g, b, a, pos) {
 
 // DOM Element Helpers
 
-function getElement(obj: string|HTMLElement, node: Element) {
-  return typeof obj === 'string' ? (node || document).querySelector<HTMLElement>(obj)! : obj;
-}
-
 function createElement(parent, className) {
   var el = document.createElement('div');
-  addClass(el, className);
+  el.classList.add(className);
   parent.appendChild(el);
   return el;
 }
-
-function removeClass(el, str) {
-  el.classList.remove(str);
-}
-
-function addClass(el, str) {
-  el.classList.add(str);
-}
-
-function getZIndex(el) {
-  return el.style.zIndex;
-}
-
-function setZIndex(el, index) {
-  el.style.zIndex = index;
-}
-
 
 // SVG Helpers
 
@@ -161,23 +124,55 @@ type PeelEvent = {
   handler: () => void;
 }
 
+const shapes = ["circle","path","polygon","rect"] as const;
+
+type Shapes = { [P in typeof shapes[number]]?: unknown; }
+
+export type PeelOptions = typeof Peel.defaultOptions&{
+  preset?: Preset;
+}&Shapes;
+
+type PeelLayer = "top"|"back"|"bottom"|"top-shadow"|"back-shadow"|"bottom-shadow"|"back-reflection"|"top-outer-clip"|"back-outer-clip";
+
+/**
+ * Four constants representing the corners of the element from which peeling can occur.
+ */
+enum PeelCorners {
+  TOP_LEFT,
+  TOP_RIGHT,
+  BOTTOM_LEFT,
+  BOTTOM_RIGHT
+}
+
+type PointOption =
+  | { x: number; y: number }
+  | PeelCorners
+  | [number, number]
+;
+
+type PointArgs = Readonly<[PointOption|Point]|[number, number]>;
+
+type Preset = "book"|"calendar";
+
 /**
  * Main class that controls the peeling effect.
  */
 export class Peel {
+  static readonly Corners = PeelCorners;
+
   el: HTMLElement;
+  options: PeelOptions;
   constraints: Circle[];
   events: PeelEvent[];
-  corner!: Point;
+  corner: Point;
   path?: LineSegment|BezierCurve;
   dragHandler: unknown;
   pressHandler: unknown;
   dragEventsSetup: unknown;
-  timeAlongPath = 0;
-  fadeThreshold = 0;
+  timeAlongPath?: number;
+  fadeThreshold!: number;
   peelLineSegment?: LineSegment;
   peelLineRotation = 0;
-  options: Record<string, unknown> = {};
   width = 0;
   height = 0;
 
@@ -199,99 +194,67 @@ export class Peel {
   usesBoxShadow?: boolean;
   center!: Point;
 
-  /**
-   * @param {HTMLElement|string} el The main container element (can be query).
-   * @param {object} options Options for the effect.
-   */
-  constructor(el, opt) {
-    this.setOptions(opt);
-    this.el = getElement(el, document.documentElement);
+  constructor(
+    el: HTMLElement|string,
+    options?: Partial<PeelOptions>,
+  ) {
+    this.el = typeof el === "string" ? document.querySelector(el)! : el;
+    this.options = Object.assign(options ?? {}, Peel.defaultOptions);
     this.constraints = [];
     this.events = [];
     this.setupLayers();
     this.setupDimensions();
-    this.setCorner(this.getOption('corner'));
-    this.setMode(this.getOption('mode'));
+    this.corner = this.getPoint(this.options.corner);
+    if (this.options.preset) {
+      this.applyPreset(this.options.preset);
+    }
     this.init();
   }
 
-  /**
-   * Four constants representing the corners of the element from which peeling can occur.
-   */
-  static readonly Corners = {
-    TOP_LEFT:     0x0,
-    TOP_RIGHT:    0x1,
-    BOTTOM_LEFT:  0x2,
-    BOTTOM_RIGHT: 0x3
-  }
+  static readonly defaultOptions = {
+    corner: PeelCorners.BOTTOM_RIGHT as PointOption,
+    topShadow: true,
+    topShadowBlur: 5,
+    topShadowAlpha: .5,
+    topShadowOffsetX: 0,
+    topShadowOffsetY: 1,
+    topShadowCreatesShape: true,
+    backReflection: false,
+    backReflectionSize: .02,
+    backReflectionOffset: 0,
+    backReflectionAlpha: .15,
+    backReflectionDistribute: true,
+    backShadow: true,
+    backShadowSize: .04,
+    backShadowOffset: 0,
+    backShadowAlpha: .1,
+    backShadowDistribute: true,
+    bottomShadow: true,
+    bottomShadowSize: 1.5,
+    bottomShadowOffset: 0,
+    bottomShadowDarkAlpha: .7,
+    bottomShadowLightAlpha: .1,
+    bottomShadowDistribute: true,
+    setPeelOnInit: true,
+    clippingBoxScale: 4,
+    flipConstraintOffset: 5,
+    dragPreventsDefault: true
+  };
 
-  /**
-   * Defaults
-   */
-  static readonly Defaults = {
-    'topShadow': true,
-    'topShadowBlur': 5,
-    'topShadowAlpha': .5,
-    'topShadowOffsetX': 0,
-    'topShadowOffsetY': 1,
-    'topShadowCreatesShape': true,
-
-    'backReflection': false,
-    'backReflectionSize': .02,
-    'backReflectionOffset': 0,
-    'backReflectionAlpha': .15,
-    'backReflectionDistribute': true,
-
-    'backShadow': true,
-    'backShadowSize': .04,
-    'backShadowOffset': 0,
-    'backShadowAlpha': .1,
-    'backShadowDistribute': true,
-
-    'bottomShadow': true,
-    'bottomShadowSize': 1.5,
-    'bottomShadowOffset': 0,
-    'bottomShadowDarkAlpha': .7,
-    'bottomShadowLightAlpha': .1,
-    'bottomShadowDistribute': true,
-
-    'setPeelOnInit': true,
-    'clippingBoxScale': 4,
-    'flipConstraintOffset': 5,
-    'dragPreventsDefault': true
-  }
-
-  /**
-   * Sets the corner for the peel effect to happen from (default is bottom right).
-   * @param {Mixed} [...] Either x,y or a corner id.
-   */
-  setCorner(...args) {
-    if (args[0] === undefined) {
-      args = [Peel.Corners.BOTTOM_RIGHT];
-    } else if (args[0].length) {
-      args = args[0];
-    }
-    this.corner = this.getPointOrCorner(...args);
-  }
-
-  /**
-   * Sets a pre-defined "mode".
-   * @param {string} mode The mode to set.
-   */
-  setMode(mode) {
-    if (mode === 'book') {
+  applyPreset(preset: Preset) {
+    if (preset === 'book') {
       // The order of constraints is important here so that the peel line
       // approaches the horizontal smoothly without jumping.
-      this.addPeelConstraint(Peel.Corners.BOTTOM_LEFT);
-      this.addPeelConstraint(Peel.Corners.TOP_LEFT);
+      this.addPeelConstraint(PeelCorners.BOTTOM_LEFT);
+      this.addPeelConstraint(PeelCorners.TOP_LEFT);
       // Removing effect distribution will make the book still have some
       // depth to the effect while fully open.
-      this.setOption('backReflection', false);
-      this.setOption('backShadowDistribute', false);
-      this.setOption('bottomShadowDistribute', false);
-    } else if (mode === 'calendar') {
-      this.addPeelConstraint(Peel.Corners.TOP_RIGHT);
-      this.addPeelConstraint(Peel.Corners.TOP_LEFT);
+      this.options.backReflection = false;
+      this.options.backShadowDistribute = false;
+      this.options.bottomShadowDistribute = false;
+    } else if (preset === 'calendar') {
+      this.addPeelConstraint(PeelCorners.TOP_RIGHT);
+      this.addPeelConstraint(PeelCorners.TOP_LEFT);
     }
   }
 
@@ -303,16 +266,15 @@ export class Peel {
    *     bezier curve from p1 to p2 using control points c1 and c2. The first
    *     and last two arguments represent p1 and p2, respectively.
    */
-  setPeelPath(x1, y1) {
-    var args = arguments, p1, p2, c1, c2;
-    p1 = new Point(x1, y1);
+  setPeelPath(...args: TupleOf<4|8, number>) {
+    const p1 = new Point(args[0], args[1]);
     if (args.length === 4) {
-      p2 = new Point(args[2], args[3]);
+      const p2 = new Point(args[2], args[3]);
       this.path = new LineSegment(p1, p2);
     } else if (args.length === 8) {
-      c1 = new Point(args[2], args[3]);
-      c2 = new Point(args[4], args[5]);
-      p2 = new Point(args[6], args[7]);
+      const c1 = new Point(args[2], args[3]);
+      const c2 = new Point(args[4], args[5]);
+      const p2 = new Point(args[6], args[7]);
       this.path = new BezierCurve(p1, c1, c2, p2);
     }
   }
@@ -365,7 +327,7 @@ export class Peel {
     el = el || this.el;
 
     function dragStart (touch, evt) {
-      if (self.getOption('dragPreventsDefault')) {
+      if (self.options.dragPreventsDefault) {
         evt.preventDefault();
       }
       moveName = touch ? 'touchmove' : 'mousemove';
@@ -420,7 +382,7 @@ export class Peel {
     t = clamp(t);
     var point = this.path!.getPointForTime(t);
     this.timeAlongPath = t;
-    this.setPeelPosition(point.x, point.y);
+    this.setPeelPosition(point);
   }
 
   /**
@@ -428,19 +390,17 @@ export class Peel {
    * will begin to fade out. This is calculated based on the visible clipped
    * area of the polygon. If a peel path is set, it will use the progress along
    * the path instead.
-   * @param {number} n A point between 0 and 1.
    */
-  setFadeThreshold(n) {
+  setFadeThreshold(n: number) {
     this.fadeThreshold = n;
   }
 
   /**
    * Sets the position of the peel effect. This point is the position
    * of the corner that is being peeled back.
-   * @param {Mixed} [...] Either x,y or a corner id.
    */
-  setPeelPosition(...args) {
-    var pos = this.getPointOrCorner(...args);
+  setPeelPosition(...args: PointArgs) {
+    var pos = this.getPoint(...args);
     pos = this.getConstrainedPeelPosition(pos);
     if (!pos) {
       return;
@@ -460,30 +420,15 @@ export class Peel {
    * 2 constraint points (top-left/bottom-left for a book, etc) will create the
    * desired effect. An arbitrary point can also be used with an effect like a
    * thumbtack holding the pages together.
-   * @param {Mixed} [...] Either x,y or a corner id.
    */
   /**
    * Sets the corner for the peel effect to happen from.
    */
-  addPeelConstraint(...args) {
-    var p = this.getPointOrCorner(...args);
+  addPeelConstraint(...args: PointArgs) {
+    var p = this.getPoint(...args);
     var radius = this.corner!.subtract(p).getLength();
     this.constraints.push(new Circle(p, radius));
     this.calculateFlipConstraint();
-  }
-
-  /**
-   * Sets an option to use for the effect.
-   */
-  setOption(key: string, value: unknown) {
-    this.options[key] = value;
-  }
-
-  /**
-   * Gets an option set by the user.
-   */
-  getOption(key: string) {
-    return this.options[camelize(key)];
   }
 
   /**
@@ -540,25 +485,6 @@ export class Peel {
   }
 
   /**
-   * Called when the drag event starts.
-   * @param {Event} evt The original DOM event.
-   * @param {string} type The event type, "mouse" or "touch".
-   * @param {Function} fn The handler function to be called on drag.
-   */
-  private dragStart(evt, type, fn) {
-  }
-
-  /**
-   * Calls an event handler using the coordinates of the event.
-   * @param {Event} evt The original event.
-   * @param {Function} fn The handler to call.
-   */
-  private fireHandler(evt, fn) {
-    var coords = getEventCoordinates(evt, this.el);
-    fn.call(this, evt, coords.x, coords.y);
-  }
-
-  /**
    * Sets the clipping points of the top and back layers based on a line
    * segment that represents the peel line.
    */
@@ -606,81 +532,47 @@ export class Peel {
   }
 
   /**
-   * Sets the options for the effect, merging in defaults.
-   * @param {Object} opt User options.
-   */
-  private setOptions(opt) {
-    var options = opt || {}, defaults = Peel.Defaults;
-    for (var key in defaults) {
-      if (!defaults.hasOwnProperty(key) || key in options) {
-        continue;
-      }
-      options[key] = defaults[key];
-    }
-    this.options = options;
-  }
-
-  /**
    * Finds or creates a layer in the dom.
-   * @param {string} id The internal id of the element to be found or created.
    * @param {HTMLElement} parent The parent if the element needs to be created.
    * @param {numer} zIndex The z index of the layer.
    * @returns {HTMLElement}
    */
-  private findOrCreateLayer(id, parent, zIndex) {
-    var optId = id + '-element';
-    var domId = prefix(id);
-    var el = getElement(this.getOption(optId) as string || ('.' + domId), parent);
+  private findOrCreateLayer(layer: PeelLayer, parent: HTMLElement, zIndex: number) {
+    const optId = layer + '-element';
+    const domId = prefix(layer);
+    let el = parent.querySelector<HTMLElement>(this.options[optId] as string || (`.${domId}`));
     if (!el) {
       el = createElement(parent, domId);
     }
-    addClass(el, prefix('layer'));
-    setZIndex(el, zIndex);
+    el.classList.add(prefix('layer'));
+    el.style.zIndex = "" + zIndex;
     return el;
   }
 
-  /**
-   * Returns either a point created from 2 arguments (x/y) or a corner point
-   * created from the first argument as a corner id.
-   * @param {Arguments} args The arguments object from the original function.
-   * @returns {Point}
-   */
-  private getPointOrCorner(...args) {
-    if (args.length === 2) {
-      return new Point(args[0], args[1]);
-    } else if(typeof args[0] === 'number') {
-      return this.getCornerPoint(args[0]);
-    }
-    return args[0];
-  }
-
-  /**
-   * Returns a corner point based on an id defined in Peel.Corners.
-   * @param {number} id The id of the corner.
-   */
-  private getCornerPoint(id) {
-    var x = +!!(id & 1) * this.width;
-    var y = +!!(id & 2) * this.height;
-    return new Point(x, y);
-  }
-
-  /**
-   * Gets an optional clipping shape that may be set by the user.
-   * @returns {Object}
-   */
-  private getOptionalShape() {
-    var shapes = ['rect', 'polygon', 'path', 'circle'], found;
-    shapes.some((type) => {
-      var attr = this.getOption(type), obj;
-      if (attr) {
-        obj = {};
-        obj.attributes = attr;
-        obj.type = type;
-        found = obj;
+  getPoint(...args: PointArgs) {
+    let xy: Readonly<ConstructorParameters<typeof Point>>;
+    if (args.length === 1) {
+      const value = args[0];
+      if (typeof value === "number") {
+        return this.getCornerPoint(value);
+      } else if (Array.isArray(value)) {
+        xy = value;
+      } else {
+        xy = [value.x, value.y];
       }
-      return found;
-    }, this);
-    return found;
+    } else {
+      xy = args;
+    }
+    return new Point(...xy);
+  }
+
+  /**
+   * Returns a corner point based on an id defined in PeelCorners.
+   */
+  private getCornerPoint(corner: PeelCorners) {
+    var x = +!!(corner & 1) * this.width;
+    var y = +!!(corner & 2) * this.height;
+    return new Point(x, y);
   }
 
   /**
@@ -688,15 +580,21 @@ export class Peel {
    * subclip shape.
    */
   private setupLayers() {
-    var shape = this.getOptionalShape();
-
     // The inner layers may be wrapped later, so keep a reference to them here.
     var topInnerLayer  = this.topLayer  = this.findOrCreateLayer('top', this.el, 2);
     var backInnerLayer = this.backLayer = this.findOrCreateLayer('back', this.el, 3);
 
     this.bottomLayer = this.findOrCreateLayer('bottom', this.el, 1);
 
-    if (shape) {
+    const matchedShapes = shapes.filter(key => key in this.options);
+    if (matchedShapes.length > 1) {
+      throw new Error(`You must specify at most one of the shapes: ${shapes}`);
+    }
+    if (matchedShapes.length === 1) {
+      const shape = {
+        type: matchedShapes[0],
+        attributes: this.options[matchedShapes[0]],
+      };
       // If there is an SVG shape specified in the options, then this needs to
       // be a separate clipped element because Safari/Mobile Safari can't handle
       // nested clip-paths. The current top/back element will become the shape
@@ -710,7 +608,7 @@ export class Peel {
       this.backShapeClip   = new SVGClip(backInnerLayer, shape);
       this.bottomShapeClip = new SVGClip(this.bottomLayer, shape);
 
-      if (this.getOption('topShadowCreatesShape')) {
+      if (this.options.topShadowCreatesShape) {
         this.topShadowElement = this.setupDropShadow(shape, topInnerLayer);
       }
     } else {
@@ -724,7 +622,7 @@ export class Peel {
     this.backReflectionElement = this.findOrCreateLayer('back-reflection', backInnerLayer, 2);
     this.bottomShadowElement   = this.findOrCreateLayer('bottom-shadow', this.bottomLayer, 1);
 
-    this.usesBoxShadow = !shape;
+    this.usesBoxShadow = matchedShapes.length === 0;
   }
 
   /**
@@ -746,14 +644,10 @@ export class Peel {
   /**
    * Wraps the passed element in another layer, preserving its z-index. Also
    * add a "shape-layer" class to the layer which now becomes a shape clip.
-   * @param {HTMLElement} el The element to become the wrapped shape layer.
-   * @param {string} id The identifier for the new layer that will wrap the element.
-   * @returns {HTMLElement} The new element that wraps the shape layer.
    */
-  private wrapShapeLayer(el, id) {
-    var zIndex = getZIndex(el);
-    addClass(el, prefix('shape-layer'));
-    var outerLayer = this.findOrCreateLayer(id, this.el, zIndex);
+  private wrapShapeLayer(el: HTMLElement, layer: PeelLayer) {
+    el.classList.add(prefix('shape-layer'));
+    var outerLayer = this.findOrCreateLayer(layer, this.el, Number.parseInt(el.style.zIndex));
     outerLayer.appendChild(el);
     return outerLayer;
   }
@@ -768,7 +662,7 @@ export class Peel {
     this.center = new Point(this.width / 2, this.height / 2);
 
     this.elementBox  = this.getScaledBox(1);
-    this.clippingBox = this.getScaledBox(this.getOption('clippingBoxScale'));
+    this.clippingBox = this.getScaledBox(this.options.clippingBoxScale);
   }
 
   /**
@@ -819,10 +713,9 @@ export class Peel {
    * on the Y axis when dragging away from the center.
    * @param {Circle} area The constraint to check against.
    * @param {Point} point The peel position to be constrained.
-   * @returns {number|undefined}
    */
   private getFlipConstraintOffset(area, pos) {
-    const offset = this.getOption('flipConstraintOffset') as number;
+    const offset = this.options.flipConstraintOffset;
     if (area === this.flipConstraint && offset) {
       var cornerToCenter = this.corner.subtract(this.center);
       var cornerToConstraint = this.corner.subtract(area.center);
@@ -895,22 +788,22 @@ export class Peel {
    * @returns {number} A position >= 0.
    */
   private getPeelLineDistance() {
-    var cornerId, opposingCornerId, corner, opposingCorner;
+    let cornerId: PeelCorners, opposingCornerId: PeelCorners;
     if (this.peelLineRotation < 90) {
-      cornerId = Peel.Corners.TOP_RIGHT;
-      opposingCornerId = Peel.Corners.BOTTOM_LEFT;
+      cornerId = PeelCorners.TOP_RIGHT;
+      opposingCornerId = PeelCorners.BOTTOM_LEFT;
     } else if (this.peelLineRotation < 180) {
-      cornerId = Peel.Corners.BOTTOM_RIGHT;
-      opposingCornerId = Peel.Corners.TOP_LEFT;
+      cornerId = PeelCorners.BOTTOM_RIGHT;
+      opposingCornerId = PeelCorners.TOP_LEFT;
     } else if (this.peelLineRotation < 270) {
-      cornerId = Peel.Corners.BOTTOM_LEFT;
-      opposingCornerId = Peel.Corners.TOP_RIGHT;
-    } else if (this.peelLineRotation < 360) {
-      cornerId = Peel.Corners.TOP_LEFT;
-      opposingCornerId = Peel.Corners.BOTTOM_RIGHT;
+      cornerId = PeelCorners.BOTTOM_LEFT;
+      opposingCornerId = PeelCorners.TOP_RIGHT;
+    } else {
+      cornerId = PeelCorners.TOP_LEFT;
+      opposingCornerId = PeelCorners.BOTTOM_RIGHT;
     }
-    corner = this.getCornerPoint(cornerId);
-    opposingCorner = this.getCornerPoint(opposingCornerId);
+    const corner = this.getCornerPoint(cornerId);
+    const opposingCorner = this.getCornerPoint(opposingCornerId);
 
     // Scale the line segment past the original corners so that the effects
     // can have a nice fadeout even past 1.
@@ -943,18 +836,15 @@ export class Peel {
    * @param {number} t Position of the peel line from corner to corner.
    */
   private setTopShadow(t) {
-    if (!this.getOption('topShadow')) {
+    if (!this.options.topShadow) {
       return;
     }
-    var sBlur  = this.getOption('topShadowBlur');
-    var sX     = this.getOption('topShadowOffsetX');
-    var sY     = this.getOption('topShadowOffsetY');
-    var alpha  = this.getOption('topShadowAlpha');
-    var sAlpha = this.exponential(t, 5, alpha);
+    const { topShadowBlur, topShadowOffsetX, topShadowOffsetY, topShadowAlpha } = this.options;
+    const sAlpha = this.exponential(t, 5, topShadowAlpha);
     if (this.usesBoxShadow) {
-      setBoxShadow(this.topShadowElement, sX, sY, sBlur, 0, sAlpha);
+      setBoxShadow(this.topShadowElement, topShadowOffsetX, topShadowOffsetY, topShadowBlur, 0, sAlpha);
     } else {
-      setDropShadow(this.topShadowElement, sX, sY, sBlur, sAlpha);
+      setDropShadow(this.topShadowElement, topShadowOffsetX, topShadowOffsetY, topShadowBlur, sAlpha);
     }
   }
 
@@ -991,12 +881,12 @@ export class Peel {
    */
   private setBackReflection(t) {
     const stops: string[] = [];
-    if (this.canSetLinearEffect('backReflection', t)) {
+    if (this.options.backReflection && t > 0) {
 
-      var rDistribute = this.getOption('backReflectionDistribute');
-      var rSize = this.getOption('backReflectionSize');
-      var rOffset = this.getOption('backReflectionOffset') as number;
-      var rAlpha = this.getOption('backReflectionAlpha');
+      var rDistribute = this.options.backReflectionDistribute;
+      var rSize = this.options.backReflectionSize;
+      var rOffset = this.options.backReflectionOffset;
+      var rAlpha = this.options.backReflectionAlpha;
 
       var reflectionSize = this.distributeOrLinear(t, rDistribute, rSize);
       var rStop  = t - rOffset;
@@ -1017,12 +907,14 @@ export class Peel {
    */
   private setBackShadow(t) {
     const stops: string[] = [];
-    if (this.canSetLinearEffect('backShadow', t)) {
+    if (this.options.backShadow && t > 0) {
 
-      var sSize       = this.getOption('backShadowSize');
-      var sOffset     = this.getOption('backShadowOffset') as number;
-      var sAlpha      = this.getOption('backShadowAlpha');
-      var sDistribute = this.getOption('backShadowDistribute');
+      const {
+        backShadowSize: sSize,
+        backShadowOffset: sOffset,
+        backShadowAlpha: sAlpha,
+        backShadowDistribute: sDistribute,
+      } = this.options;
 
       var shadowSize  = this.distributeOrLinear(t, sDistribute, sSize);
       var shadowStop  = t - sOffset;
@@ -1043,18 +935,19 @@ export class Peel {
    */
   private setBottomShadow(t) {
     const stops: string[] = [];
-    if (this.canSetLinearEffect('bottomShadow', t)) {
-
-      // Options
-      var sSize = this.getOption('bottomShadowSize') as number;
-      var offset = this.getOption('bottomShadowOffset') as number;
-      var darkAlpha = this.getOption('bottomShadowDarkAlpha');
-      var lightAlpha = this.getOption('bottomShadowLightAlpha');
-      var sDistribute = this.getOption('bottomShadowDistribute');
+    if (this.options.bottomShadow && t > 0) {
+      const {
+        bottomShadowSize: sSize,
+        bottomShadowOffset: offset,
+        bottomShadowDarkAlpha: darkAlpha,
+        bottomShadowLightAlpha: lightAlpha,
+        bottomShadowDistribute: sDistribute
+      } = this.options;
 
       var darkShadowStart = t - (.025 - offset);
       var midShadowStart = darkShadowStart - (this.distributeOrLinear(t, sDistribute, .03) * sSize) - offset;
       var lightShadowStart = midShadowStart - ((.02 * sSize) - offset);
+
       stops.push(
         getBlackStop(0, 0),
         getBlackStop(0, lightShadowStart),
@@ -1064,16 +957,6 @@ export class Peel {
       );
     }
     setBackgroundGradient(this.bottomShadowElement, this.peelLineRotation + 180, stops);
-  }
-
-  /**
-   * Whether a linear effect can be set.
-   * @param {string} name Name of the effect
-   * @param {number} t Current position of the linear effect line.
-   * @returns {boolean}
-   */
-  private canSetLinearEffect(name, t) {
-    return this.getOption(name) && t > 0;
   }
 
   /**
@@ -1109,10 +992,10 @@ export class Peel {
    * Post setup initialization.
    */
   private init() {
-    if (this.getOption('setPeelOnInit')) {
+    if (this.options.setPeelOnInit) {
       this.setPeelPosition(this.corner);
     }
-    addClass(this.el, prefix('ready'));
+    this.el.classList.add(prefix('ready'));
   }
 }
 
@@ -1436,8 +1319,8 @@ class LineSegment {
  */
 class Point {
   constructor(
-    public x: number,
-    public y: number
+    public readonly x: number,
+    public readonly y: number
   ) {
   }
 
