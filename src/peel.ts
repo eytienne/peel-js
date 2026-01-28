@@ -1,7 +1,7 @@
 import type { TupleOf } from "type-fest";
 
-const PRECISION       = 1e2; // 2 decimals
-const SVG_NAMESPACE   = 'http://www.w3.org/2000/svg';
+const PRECISION = 1e2; // 2 decimals
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 // General helpers
 
@@ -331,7 +331,7 @@ export class Peel {
         evt.preventDefault();
       }
       moveName = touch ? 'touchmove' : 'mousemove';
-      endName  = touch ? 'touchend' : 'mouseup';
+      endName = touch ? 'touchend' : 'mouseup';
 
       addEvent(document.documentElement, moveName, dragMove);
       addEvent(document.documentElement, endName, dragEnd);
@@ -462,7 +462,7 @@ export class Peel {
    * @returns {number}
    */
   private getTopClipArea() {
-    var top  = new Polygon();
+    var top = new Polygon();
     this.elementBox.forEach((side) => {
       this.distributeLineByPeelLine(side, top);
     }, this);
@@ -489,7 +489,7 @@ export class Peel {
    * segment that represents the peel line.
    */
   private setClipping() {
-    var top  = new Polygon();
+    var top = new Polygon();
     var back = new Polygon();
     this.clippingBox.forEach((side) => {
       this.distributeLineByPeelLine(side, top, back);
@@ -581,7 +581,7 @@ export class Peel {
    */
   private setupLayers() {
     // The inner layers may be wrapped later, so keep a reference to them here.
-    var topInnerLayer  = this.topLayer  = this.findOrCreateLayer('top', this.el, 2);
+    var topInnerLayer = this.topLayer = this.findOrCreateLayer('top', this.el, 2);
     var backInnerLayer = this.backLayer = this.findOrCreateLayer('back', this.el, 3);
 
     this.bottomLayer = this.findOrCreateLayer('bottom', this.el, 1);
@@ -601,11 +601,11 @@ export class Peel {
       // clip, so wrap them with an "outer" clip element that will become the
       // new layer for the peel effect. The bottom layer does not require this
       // effect, so the shape clip can be set directly on it.
-      this.topLayer  = this.wrapShapeLayer(this.topLayer, 'top-outer-clip');
+      this.topLayer = this.wrapShapeLayer(this.topLayer, 'top-outer-clip');
       this.backLayer = this.wrapShapeLayer(this.backLayer, 'back-outer-clip');
 
-      this.topShapeClip    = new SVGClip(topInnerLayer, shape);
-      this.backShapeClip   = new SVGClip(backInnerLayer, shape);
+      this.topShapeClip = new SVGClip(topInnerLayer, shape);
+      this.backShapeClip = new SVGClip(backInnerLayer, shape);
       this.bottomShapeClip = new SVGClip(this.bottomLayer, shape);
 
       if (this.options.topShadowCreatesShape) {
@@ -618,9 +618,9 @@ export class Peel {
     this.topClip = new SVGClip(this.topLayer);
     this.backClip = new SVGClip(this.backLayer);
 
-    this.backShadowElement     = this.findOrCreateLayer('back-shadow', backInnerLayer, 1);
+    this.backShadowElement = this.findOrCreateLayer('back-shadow', backInnerLayer, 1);
     this.backReflectionElement = this.findOrCreateLayer('back-reflection', backInnerLayer, 2);
-    this.bottomShadowElement   = this.findOrCreateLayer('bottom-shadow', this.bottomLayer, 1);
+    this.bottomShadowElement = this.findOrCreateLayer('bottom-shadow', this.bottomLayer, 1);
 
     this.usesBoxShadow = matchedShapes.length === 0;
   }
@@ -661,7 +661,7 @@ export class Peel {
     this.height = this.el.offsetHeight;
     this.center = new Point(this.width / 2, this.height / 2);
 
-    this.elementBox  = this.getScaledBox(1);
+    this.elementBox = this.getScaledBox(1);
     this.clippingBox = this.getScaledBox(this.options.clippingBoxScale);
   }
 
@@ -815,7 +815,7 @@ export class Peel {
       return 2;
     }
     var distanceToPeelLine = corner.subtract(intersect).getLength();
-    var totalDistance      = corner.subtract(opposingCorner).getLength();
+    var totalDistance = corner.subtract(opposingCorner).getLength();
     return (distanceToPeelLine / totalDistance);
   }
 
@@ -889,8 +889,8 @@ export class Peel {
       var rAlpha = this.options.backReflectionAlpha;
 
       var reflectionSize = this.distributeOrLinear(t, rDistribute, rSize);
-      var rStop  = t - rOffset;
-      var rMid   = rStop - reflectionSize;
+      var rStop = t - rOffset;
+      var rMid = rStop - reflectionSize;
       var rStart = rMid - reflectionSize;
 
       stops.push(getWhiteStop(0, 0));
@@ -916,9 +916,9 @@ export class Peel {
         backShadowDistribute: sDistribute,
       } = this.options;
 
-      var shadowSize  = this.distributeOrLinear(t, sDistribute, sSize);
-      var shadowStop  = t - sOffset;
-      var shadowMid   = shadowStop - shadowSize;
+      var shadowSize = this.distributeOrLinear(t, sDistribute, sSize);
+      var shadowStop = t - sOffset;
+      var shadowMid = shadowStop - shadowSize;
       var shadowStart = shadowMid - shadowSize;
 
       stops.push(getBlackStop(0, 0));
@@ -1029,7 +1029,7 @@ class SVGClip {
    */
   static getDefs() {
     if (!this.defs) {
-      this.svg  = createSVGElement('svg', null, {
+      this.svg = createSVGElement('svg', null, {
         'class': prefix('svg-clip-element')
       });
       this.defs = createSVGElement('defs', this.svg);
