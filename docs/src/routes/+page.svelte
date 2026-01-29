@@ -34,8 +34,8 @@
 			$effect(() => {
 				p.setTimeAlongPath(tween.current);
 			});
-			p.handlePress(function() {
-				p.removeEvents();
+			p.handle("press", function() {
+				p.removeDragListeners();
 				tween.set(1);
 			});
 			p.setFadeThreshold(.9);
@@ -86,8 +86,8 @@
 		}
 		{
 			const p = new Peel('#dragging');
-			p.handleDrag(function(evt, x, y) {
-				this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 			});
 		}
 		{
@@ -97,56 +97,56 @@
 				}
 			});
 			p.corner = p.getPoint(101, 175);
-			p.handleDrag(function(evt, x, y) {
-				this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 			});
 		}
 		{
 			const p = new Peel('#constraint');
 			p.addPeelConstraint(Peel.Corners.BOTTOM_LEFT);
-			p.handleDrag(function(evt, x, y) {
-				this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 			});
 		}
 		{
 			const p = new Peel('#book');
 			p.applyPreset('book');
-			p.handleDrag(function(evt, x, y) {
-			this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 			});
 		}
 		{
 			const p = new Peel('#fade');
 			p.setFadeThreshold(.9);
-			p.handleDrag(function(evt, x, y) {
-			this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 			});
 		}
 		{
 			const p = new Peel('#fade-out');
 			p.setFadeThreshold(.9);
-			p.handleDrag(function(evt, x, y) {
-				this.setPeelPosition(x, y);
+			p.handle("drag", function(evt, x, y) {
+				p.setPeelPosition(x, y);
 				if (p.getAmountClipped() === 1) {
-					p.removeEvents();
+					p.removeDragListeners();
 				}
 			});
 		}
 		{
 			const p = new Peel('#peel-path');
 			p.setPeelPath(200, 200, -200, -200);
-			p.handleDrag(function(evt, x, y) {
+			p.handle("drag", function(evt, x, y) {
 			const t = (x - p.width) / -p.width;
-			this.setTimeAlongPath(t);
+				p.setTimeAlongPath(t);
 			});
 		}
 		{
 			const p = new Peel('#peel-curve');
 			p.applyPreset('book');
 			p.setPeelPath(130, 160, 50, 60, -70, 210, -130, 160);
-			p.handleDrag(function(evt, x, y) {
+			p.handle("drag", function(evt, x, y) {
 			const t = (x - p.width) / (-p.width * 2);
-				this.setTimeAlongPath(t);
+				p.setTimeAlongPath(t);
 			});
 		}
 		{
@@ -160,7 +160,7 @@
 			$effect(() => {
 				p.setTimeAlongPath(tween.current);
 			});
-			p.handlePress(function(evt) {
+			p.handle("press", function(evt) {
 				if (tween.current > .5) {
 					tween.set(0);
 				} else {
@@ -180,7 +180,7 @@
 			$effect(() => {
 				p.setTimeAlongPath(tween.current);
 			});
-			p.handlePress(function(evt) {
+			p.handle("press", function(evt) {
 				if (tween.current < 1) {
 					tween.set(1);
 				} else {
@@ -434,21 +434,9 @@
 							</p>
 						</li>
 						<li>
-							<h4 class="method-name">getOption(key)</h4>
+							<h4 class="method-name">handle(event: "drag"|"press", fn, el)</h4>
 							<p class="method-description">
-								Gets an option passed to the constructor on initialization or modified by <span class="code">setOption</span>.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">handleDrag(fn, el)</h4>
-							<p class="method-description">
-								Sets a function to be called when the user drags, either with a mouse or with a finger (using touch events). <span class="code">fn</span> will be called with the Peel instance as the <span class="code">this</span> keyword, the original event as the first argument, and the x, y coordinates of the drag as the 2nd and 3rd arguments, respectively. <span class="code">el</span> can be specified to initiate the drag to allow another element serve as a "hit area" that can be larger than the element itself.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">handlePress(fn, el)</h4>
-							<p class="method-description">
-								Sets a function to be called when the user either clicks with a mouse or taps with a finger. <span class="code">fn</span> will be called with the Peel instance as the <span class="code">this</span> keyword, the original event as the first argument, and the x, y coordinates of the drag as the 2nd and 3rd arguments, respectively. <span class="code">el</span> can be specified to initiate the press to allow another element serve as a "hit area" that can be larger than the element itself.
+								Sets a function to be called when the user either presses or drags. <span class="code">fn</span> will be called with the original event as the first argument, and the x, y coordinates of the event as the 2nd and 3rd arguments, respectively. <span class="code">el</span> can be specified to initiate the event to allow another element serve as a "hit area" that can be larger than the element itself.
 							</p>
 						</li>
 						<li>
@@ -470,12 +458,6 @@
 							</p>
 						</li>
 						<li>
-							<h4 class="method-name">setOption(key, value)</h4>
-							<p class="method-description">
-								Sets an option to use for the effect. This method allows you to modify the options object that is passed to the constructor on initialization.
-							</p>
-						</li>
-						<li>
 							<h4 class="method-name">setPeelPosition(x, y)</h4>
 							<p class="method-description">
 								Sets the position of the peel effect. This point is the position of the corner that is being peeled back.
@@ -494,7 +476,7 @@
 							</p>
 						</li>
 						<li>
-							<h4 class="method-name">removeEvents()</h4>
+							<h4 class="method-name">removeDragListeners()</h4>
 							<p class="method-description">
 								Removes all event handlers previously set on the instance.
 							</p>
@@ -677,9 +659,9 @@
 							</p>
 						</li>
 						<li>
-							<h4 class="option-name">mode</h4>
+							<h4 class="option-name">preset</h4>
 							<p class="option-description">
-								Sets a pre-defined mode, currently "book" or "calendar".
+								Sets a preset, currently "book" or "calendar".
 							</p>
 						</li>
 						<li>

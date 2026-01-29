@@ -59,20 +59,12 @@ function setBackgroundGradient(el, rotation, stops) {
 
 // Event Helpers
 
-function addEvent(el, type, fn) {
-  el.addEventListener(type, fn)
-}
-
-function removeEvent(el, type, fn) {
-  el.removeEventListener(type, fn);
-}
-
-function getEventCoordinates(evt, el) {
-  var pos = evt.changedTouches ? evt.changedTouches[0] : evt;
+function getEventCoordinates(evt: MouseEvent|TouchEvent, el: HTMLElement) {
+  const pos = evt instanceof TouchEvent ? evt.changedTouches[0] : evt;
   return {
     'x': pos.clientX - el.offsetLeft + window.scrollX,
     'y': pos.clientY - el.offsetTop + window.scrollY
-  }
+  };
 }
 
 // Color Helpers
@@ -117,12 +109,7 @@ function setSVGAttribute(el, key, value) {
   el.setAttributeNS(null, key, value);
 }
 
-
-type PeelEvent = {
-  el: Element;
-  type: string;
-  handler: () => void;
-}
+type Handler = (evt: Event, x: number, y: number) => void;
 
 const shapes = ["circle","path","polygon","rect"] as const;
 
@@ -163,12 +150,11 @@ export class Peel {
   el: HTMLElement;
   options: PeelOptions;
   constraints: Circle[];
-  events: PeelEvent[];
   corner: Point;
   path?: LineSegment|BezierCurve;
-  dragHandler: unknown;
-  pressHandler: unknown;
-  dragEventsSetup: unknown;
+  dragHandler?: Handler;
+  pressHandler?: Handler;
+  private _removeDragListeners?: () => void;
   timeAlongPath?: number;
   fadeThreshold!: number;
   peelLineSegment?: LineSegment;
@@ -201,7 +187,6 @@ export class Peel {
     this.el = typeof el === "string" ? document.querySelector(el)! : el;
     this.options = Object.assign(options ?? {}, Peel.defaultOptions);
     this.constraints = [];
-    this.events = [];
     this.setupLayers();
     this.setupDimensions();
     this.corner = this.getPoint(this.options.corner);
@@ -280,97 +265,86 @@ export class Peel {
   }
 
   /**
-   * Sets a function to be called when the user drags, either with a mouse or
-   * with a finger (touch events).
-   * @param {Function} fn The function to be called on drag. This function will
-   *     be called with the Peel instance as the "this" keyword, the original
-   *     event as the first argument, and the x, y coordinates of the drag as
-   *     the 2nd and 3rd arguments, respectively.
-   * @param {HTMLElement} el The element to initiate the drag on mouse/touch start.
-   *     If not passed, this will be the element associated with the Peel
-   *     instance. Allowing this to be passed lets another element serve as a
-   *     "hit area" that can be larger than the element itself.
-   */
-  handleDrag(fn, el) {
-    this.dragHandler = fn;
-    this.setupDragEvents(el);
-  }
-
-  /**
-   * Sets a function to be called when the user either clicks with a mouse or
-   * taps with a finger (touch events).
+   * Sets a function to be called when the user either presses or drags.
    * @param {Function} fn The function to be called on press. This function will
-   *     be called with the Peel instance as the "this" keyword, the original
-   *     event as the first argument, and the x, y coordinates of the event as
-   *     the 2nd and 3rd arguments, respectively.
+   *     be called with the original event as the first argument, and the x, y
+   *     coordinates of the event as the 2nd and 3rd arguments, respectively.
    * @param {HTMLElement} el The element to initiate the event.
    *     If not passed, this will be the element associated with the Peel
    *     instance. Allowing this to be passed lets another element serve as a
    *     "hit area" that can be larger than the element itself.
    */
-  handlePress(fn, el) {
-    this.pressHandler = fn;
-    this.setupDragEvents(el);
+  handle(event: "drag"|"press",fn: Handler, el?: HTMLElement) {
+    if (event === "drag") {
+      this.dragHandler = fn;
+    } else if (event === "press") {
+      this.pressHandler = fn;
+    }
+    this.setupDragListeners(el);
   }
 
   /**
    * Sets up the drag events needed for both drag and press handlers.
-   * @param {HTMLElement} el The element to initiate the dragStart event on.
+   * @returns {Function} A function that can be called to remove the listeners.
    */
-  private setupDragEvents(el) {
-    var self = this, isDragging, moveName, endName;
-
-    if (this.dragEventsSetup) {
-      return;
-    }
+  private setupDragListeners(el?: HTMLElement) {
+    if (this._removeDragListeners) return;
 
     el = el || this.el;
+    let isDragging = false;
 
-    function dragStart (touch, evt) {
-      if (self.options.dragPreventsDefault) {
+    const dragStart = (evt) => {
+      if (this.options.dragPreventsDefault) {
         evt.preventDefault();
-      }
-      moveName = touch ? 'touchmove' : 'mousemove';
-      endName = touch ? 'touchend' : 'mouseup';
-
-      addEvent(document.documentElement, moveName, dragMove);
-      addEvent(document.documentElement, endName, dragEnd);
-      isDragging = false;
-    }
-
-    function dragMove (evt) {
-      if (self.dragHandler) {
-        callHandler(self.dragHandler, evt);
       }
       isDragging = true;
     }
 
-    function dragEnd(evt) {
-      if (!isDragging && self.pressHandler) {
-        callHandler(self.pressHandler, evt);
+    const dragMove = (evt) => {
+      if (isDragging) {
+        callHandlerIfAny(this.dragHandler, evt);
       }
-      removeEvent(document.documentElement, moveName, dragMove);
-      removeEvent(document.documentElement, endName, dragEnd);
     }
 
-    function callHandler(fn, evt) {
-      var coords = getEventCoordinates(evt, self.el);
-      fn.call(self, evt, coords.x, coords.y);
+    const dragEnd = (evt: MouseEvent|TouchEvent) => {
+      if (isDragging && this.el.contains(evt.target as Node)) {
+        callHandlerIfAny(this.pressHandler, evt);
+      }
+      isDragging = false;
     }
 
-    this.addEvent(el, 'mousedown', dragStart.bind(this, false));
-    this.addEvent(el, 'touchstart', dragStart.bind(this, true));
-    this.dragEventsSetup = true;
+    const callHandlerIfAny = (fn: Handler|undefined, evt) => {
+      var coords = getEventCoordinates(evt, this.el);
+      if (fn) {
+        fn(evt, coords.x, coords.y);
+      }
+    }
+
+    el.addEventListener('mousedown', dragStart);
+    el.addEventListener('touchstart', dragStart);
+
+    document.documentElement.addEventListener('mousemove', dragMove);
+    document.documentElement.addEventListener('touchmove', dragMove);
+
+    document.documentElement.addEventListener('mouseup', dragEnd, { passive: false });
+    document.documentElement.addEventListener('touchend', dragEnd, { passive: false });
+
+
+    this._removeDragListeners = () => {
+      el.removeEventListener('mousedown', dragStart);
+      el.removeEventListener('touchstart', dragStart);
+
+      document.documentElement.removeEventListener('mousemove', dragMove);
+      document.documentElement.removeEventListener('touchmove', dragMove);
+
+      document.documentElement.removeEventListener('mouseup', dragEnd);
+      document.documentElement.removeEventListener('touchend', dragEnd);
+    };
   }
 
-  /**
-   * Remove all event handlers previously added to the instance.
-   */
-  removeEvents() {
-    this.events.forEach(function(e, i) {
-      removeEvent(e.el, e.type, e.handler);
-    });
-    this.events = [];
+  removeDragListeners() {
+    this._removeDragListeners?.();
+    this._removeDragListeners = undefined;
   }
 
   /**
@@ -421,9 +395,6 @@ export class Peel {
    * desired effect. An arbitrary point can also be used with an effect like a
    * thumbtack holding the pages together.
    */
-  /**
-   * Sets the corner for the peel effect to happen from.
-   */
   addPeelConstraint(...args: PointArgs) {
     var p = this.getPoint(...args);
     var radius = this.corner!.subtract(p).getLength();
@@ -441,22 +412,6 @@ export class Peel {
     return normalize(topArea, totalArea, 0);
   }
 
-  /**
-   * Adds an event listener to the element and keeps track of it for later
-   * removal.
-   * @param {Element} el The element to add the handler to.
-   * @param {string} type The event type.
-   * @param {Function} fn The handler function.
-   */
-  private addEvent(el, type, fn) {
-    addEvent(el, type, fn);
-    this.events.push({
-      el: el,
-      type: type,
-      handler: fn
-    });
-    return fn;
-  }
   /**
    * Gets the area of the clipped top layer.
    * @returns {number}
