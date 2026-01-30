@@ -13,7 +13,7 @@ const config = {
     mergeModulesRenameDefaults: true,
     mergeModulesMergeMode: "project",
     navigationLinks: {
-        "Examples": "/"
+        "Examples": process.env.PUBLIC_ROOT_URL || "/"
     }
 };
 

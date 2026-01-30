@@ -161,7 +161,6 @@ export class Peel {
   pressHandler?: Handler;
   private _removeDragListeners?: () => void;
   timeAlongPath?: number;
-  fadeThreshold!: number;
   peelLineSegment?: LineSegment;
   peelLineRotation = 0;
   width = 0;
@@ -191,10 +190,10 @@ export class Peel {
    */
   constructor(
     el: HTMLElement|string,
-    options?: Partial<PeelOptions>,
+    options: Partial<PeelOptions> = {},
   ) {
     this.el = typeof el === "string" ? document.querySelector(el)! : el;
-    this.options = Object.assign(options ?? {}, Peel.defaultOptions);
+    this.options = Object.assign({}, Peel.defaultOptions, options);
     this.constraints = [];
     this.setupLayers();
     this.setupDimensions();
@@ -212,6 +211,13 @@ export class Peel {
      * @defaults PeelCorners.BOTTOM_RIGHT
      */
     corner: PeelCorners.BOTTOM_RIGHT as PointOption,
+    /**
+     * Threshold above which the top layer (including the backside) layer
+     * will begin to fade out. This is calculated based on the visible clipped
+     * area of the polygon. If a peel path is set, it will use the progress along
+     * the path instead.
+     */
+    fadeThreshold: 0,
     /**
      * Creates a shadow effect on the top layer of the peel. This may be a box-shadow or drop-shadow (filter) depending on the shape of the clipping.
      */
@@ -417,16 +423,6 @@ export class Peel {
     var point = this.path!.getPointForTime(t);
     this.timeAlongPath = t;
     this.setPeelPosition(point);
-  }
-
-  /**
-   * Sets a threshold above which the top layer (including the backside) layer
-   * will begin to fade out. This is calculated based on the visible clipped
-   * area of the polygon. If a peel path is set, it will use the progress along
-   * the path instead.
-   */
-  setFadeThreshold(n: number) {
-    this.fadeThreshold = n;
   }
 
   /**
@@ -979,15 +975,17 @@ export class Peel {
    * Sets the fading effect of the top layer, if a threshold is set.
    */
   private setFade() {
-    var threshold = this.fadeThreshold, opacity = 1, n;
-    if (threshold) {
+    const { fadeThreshold } = this.options;
+    let opacity = 1
+    let n: number;
+    if (fadeThreshold) {
       if (this.timeAlongPath !== undefined) {
         n = this.timeAlongPath;
       } else {
         n = this.getAmountClipped();
       }
-      if (n > threshold) {
-        opacity = (1 - n) / (1 - threshold);
+      if (n > fadeThreshold) {
+        opacity = (1 - n) / (1 - fadeThreshold);
       }
       setOpacity(this.topLayer, opacity);
       setOpacity(this.backLayer, opacity);

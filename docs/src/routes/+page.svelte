@@ -7,6 +7,7 @@
 	import { Tween } from "svelte/motion";
 	import { sineIn, sineOut } from "svelte/easing";
 	import { on } from "svelte/events";
+	import { base } from "$app/paths";
 
 	onMount(()=> {
 		const offs = Array.from(
@@ -20,6 +21,7 @@
 				corner: [170, 170],
 				backReflection: true,
 				backReflectionAlpha: .3,
+				fadeThreshold: 0.9,
 				circle: {
 					cx: 100,
 					cy: 100,
@@ -38,7 +40,6 @@
 				p.removeDragListeners();
 				tween.set(1);
 			});
-			p.setFadeThreshold(.9);
 		}
 		{
 			const p = new Peel('#simple');
@@ -116,15 +117,17 @@
 			});
 		}
 		{
-			const p = new Peel('#fade');
-			p.setFadeThreshold(.9);
+			const p = new Peel('#fade', {
+				fadeThreshold: 0.9
+			});
 			p.handle("drag", function(evt, x, y) {
 				p.setPeelPosition(x, y);
 			});
 		}
 		{
-			const p = new Peel('#fade-out');
-			p.setFadeThreshold(.9);
+			const p = new Peel('#fade-out', {
+				fadeThreshold: 0.9
+			});
 			p.handle("drag", function(evt, x, y) {
 				p.setPeelPosition(x, y);
 				if (p.getAmountClipped() === 1) {
@@ -169,10 +172,11 @@
 			});
 		}
 		{
-			const p = new Peel('#peel-fade-path');
+			const p = new Peel('#peel-fade-path', {
+				fadeThreshold: 0.7,
+			});
 			p.setPeelPosition(170, 170);
 			p.setPeelPath(170, 170, 50, 170, 0, 0, 170, -170);
-			p.setFadeThreshold(.7);
 			const tween = new Tween(0, {
 				easing: sineIn,
 				duration: 1500,
@@ -195,7 +199,7 @@
 
 <header class="bg-stone-500 w-full">
 	<section id="api" class="max-w-6xl mx-auto flex justify-end py-1">
-		<a href="/api/index.html" class="py-1 px-3 mr-17 text-lg font-bold tracking-wider font-['Roboto_Slab'] rounded-md bg-yellow-100 hover:underline">API</a>
+		<a href="{base}/api/index.html" class="py-1 px-3 mr-17 text-lg font-bold tracking-wider font-['Roboto_Slab'] rounded-md bg-yellow-100 hover:underline">API</a>
 	</section>
 </header>
 <main class="max-w-6xl mx-auto px-4">
