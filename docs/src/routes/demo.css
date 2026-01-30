@@ -6,18 +6,6 @@ html {
   overflow-x: hidden;
 }
 
-body {
-  position: relative;
-  overflow-x: hidden;
-  margin: 0;
-}
-
-section {
-  padding: 10px;
-  margin: 0 auto;
-  max-width: 1180px;
-}
-
 h1,h2,h3,h4,h5,h6 {
   font-family: "Roboto Slab", serif;
 }
@@ -27,92 +15,12 @@ ul, ol {
   padding: 0;
 }
 
-/*------------] Common [------------*/
-
-.paragraph {
-  text-align: justify;
-  max-width: 40em;
-  margin: 0 auto;
-}
-
-/*------------] Prism Overrides [------------*/
-
-code {
-  display: block;
-  position: relative;
-  font-size: 14px;
-  overflow: auto !important;
-  text-shadow: none !important;
-  padding: 10px !important;
-  background-color: #f3f3f4 !important;
-  max-height: 15em !important;
-}
-
-code[data-language]::before {
-  top: auto !important;
-  bottom: 0 !important;
-  border-radius: 0 !important;
-  color: rgba(0,0,0,.25) !important;
-  background-color: rgba(0,0,0,.05) !important;
-}
-
-span.code {
-  display: inline-block;
-  font-family: "Andale Mono", monospace;
-  font-size: 14px;
-  background-color: rgba(0,0,0,.06);
-  padding: 1px 5px;
-  border-radius: 2px;
-}
-
-@media (max-width: 440px) {
-
-  code {
-    font-size: 12px;
-  }
-
-}
-
-.cols {
-  display: -webkit-flex;
-  -webkit-justify-content: space-between;
-  -webkit-flex-wrap: wrap;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.col-6,
-.col-12 {
-  padding: 10px;
-  box-sizing: border-box;
-  margin: 10px 0;
-}
-
-.col-6 {
-  width: 49%;
-}
-
-.col-12 {
-  width: 100%;
-}
-
-@media (max-width: 900px) {
-
-  .col-6 {
-    width: 100%;
-  }
-
-}
-
-
 /*------------] Intro [------------*/
 
 #intro-peel {
   width: 200px;
   height: 200px;
 }
-
 
 #intro-peel .peel-top {
   background: url(/images/texture-1.png) no-repeat;
@@ -136,28 +44,9 @@ span.code {
   font-family: "Roboto Slab";
 }
 
-
 .peel {
   width: 200px;
   height: 200px;
-  margin: 25px auto;
-}
-
-.demo {
-  background-color: #f8f8f8;
-  border-radius: 5px;
-}
-
-.demo .language-markup {
-  border-bottom: 1px solid #ebebec;
-}
-
-.demo-header {
-  margin-top: 0;
-}
-
-.demo-description {
-  min-height: 2.6em;
 }
 
 .tap-me {
@@ -168,8 +57,9 @@ span.code {
 .tap-me:after {
   content: 'Tap!';
   position: absolute;
-  top: 78px;
-  left: 258px;
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1000;
   background-color: rgba(255,255,255,.3);
   color: rgba(0,0,0,.5);
@@ -181,24 +71,18 @@ span.code {
   transition: opacity 100ms linear;
 }
 
-
 .tap-me.tapped:after {
   opacity: 0;
 }
 
 .tap-me.book:after {
   background-color: #d9d0c3;
-  top: 63px;
-  left: 320px;
 }
 
 .tap-me.azure:after {
   background-color: #82bbd0;
 }
 
-.peel {
-  line-height: 180px;
-}
 .peel-top,
 .peel-back,
 .peel-bottom {
@@ -260,11 +144,6 @@ span.code {
   background-color: #cd7e92;
 }
 
-
-.heart {
-  line-height: 150px;
-}
-
 .heart .peel-top {
   background-color: #cd5454;
 }
@@ -277,7 +156,6 @@ span.code {
   left: 65px;
   width: 130px;
   height: 160px;
-  line-height: 150px;
   box-shadow: 0px 1px 5px rgba(0,0,0,.5);
 }
 
@@ -297,26 +175,3 @@ span.code {
   background-color: #f2f2f2;
   color: #302f30;
 }
-
-/*------------] Docs [------------*/
-
-.docs-list {
-}
-
-.docs-header {
-  margin: 2em 0 0 0;
-  border-bottom: 3px solid #c4bdaf;
-}
-
-.method-name,
-.option-name {
-  font-weight: 100;
-  margin: 1em 0 .2em 0;
-}
-
-.method-description,
-.option-description {
-  margin: 0;
-}
-
-

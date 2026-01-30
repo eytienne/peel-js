@@ -1,6 +1,7 @@
 {
   "name": "peel.js",
   "version": "1.0.0",
+  "type": "module",
   "description": "Javascript micro library for creating peeling effects using just HTML5",
   "exports": {
     ".": "./dist/peel.js",
@@ -23,7 +24,11 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.2",
   "devDependencies": {
+    "@types/node": "^25.1.0",
     "type-fest": "^5.4.2",
+    "typedoc": "^0.28.16",
+    "typedoc-plugin-markdown": "^4.9.0",
+    "typedoc-plugin-merge-modules": "^7.0.0",
     "typescript": "^5.9.3"
   }
 }

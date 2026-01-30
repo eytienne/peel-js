@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Peel } from "peel.js";
+	import { Peel, PeelCorners } from "peel.js";
 	import "peel.js/style"
 	import "./demo.css"
 	import "./page.css"
@@ -46,7 +46,7 @@
 		}
 		{
 			const p = new Peel('#top-left', {
-				corner: Peel.Corners.TOP_LEFT
+				corner: PeelCorners.TOP_LEFT
 			});
 			p.setPeelPosition(80, 70);
 		}
@@ -103,7 +103,7 @@
 		}
 		{
 			const p = new Peel('#constraint');
-			p.addPeelConstraint(Peel.Corners.BOTTOM_LEFT);
+			p.addPeelConstraint(PeelCorners.BOTTOM_LEFT);
 			p.handle("drag", function(evt, x, y) {
 				p.setPeelPosition(x, y);
 			});
@@ -193,523 +193,210 @@
 	});
 </script>
 
-<section id="intro">
-	<div class="cols">
-		<div class="col-12">
-			<div class="paragraph">
-				<div id="intro-peel" class="peel">
-					<div class="peel-top">
-						<h1>
-							Peel.js
-						</h1>
-					</div>
-					<div class="peel-back"></div>
-					<div class="peel-bottom">
-						<p>Dynamic peel effects with only HTML/CSS!</p>
-					</div>
+<header class="bg-stone-500 w-full">
+	<section id="api" class="max-w-6xl mx-auto flex justify-end py-1">
+		<a href="/api/index.html" class="py-1 px-3 mr-17 text-lg font-bold tracking-wider font-['Roboto_Slab'] rounded-md bg-yellow-100 hover:underline">API</a>
+	</section>
+</header>
+<main class="max-w-6xl mx-auto px-4">
+	<section id="intro" class="text-justify max-w-[40em] mx-auto">
+		<div id="intro-peel" class="peel">
+			<div class="peel-top">
+				<h1>
+					Peel.js
+				</h1>
+			</div>
+			<div class="peel-back"></div>
+			<div class="peel-bottom">
+				<p>Dynamic peel effects with only HTML/CSS!</p>
+			</div>
+		</div>
+		<p>Currently supported by all browsers that support CSS clip paths and transforms (generally most evergreen browsers including mobile, but excluding IE). No dependencies.</p>
+	</section>
+	<section id="static-examples">
+		<h2>Static Examples</h2>
+		<div class="demos">
+			<div>
+				<h3>Simple</h3>
+				<p>
+					Simplest possible example. 3 elements define the 3 layers used. A constructor sets up the effect, and a call to setPeelPosition tells it where to peel back to:
+				</p>
+				<div id="simple" class="peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
 				</div>
-				<p>Currently supported by all browsers that support CSS clip paths and transforms (generally most evergreen browsers including mobile, but excluding IE). No dependencies.</p>
 			</div>
-		</div>
-	</div>
-</section>
-<section id="static-examples">
-	<h2>Static Examples</h2>
-	<div class="cols">
-		<div class="col-6 demo">
-			<h3 class="demo-header">Simple</h3>
-			<p class="demo-description">
-				Simplest possible example. 3 elements define the 3 layers used. A constructor sets up the effect, and a call to setPeelPosition tells it where to peel back to:
-			</p>
-			<div id="simple" class="peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
+			<div>
+				<h3>Corner</h3>
+				<p>
+					Any corner can be used for the peel effect:
+				</p>
+				<div id="top-left" class="yellow peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
 			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Corner</h3>
-			<p class="demo-description">
-				Any corner can be used for the peel effect:
-			</p>
-			<div id="top-left" class="yellow peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
+			<div>
+				<h3>Shadows</h3>
+				<p>
+					The shadow effects can be controlled through various options to the constructor (options listed below):
+				</p>
+				<div id="shadows" class="purple peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
 			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Shadows</h3>
-			<p class="demo-description">
-				The shadow effects can be controlled through various options to the constructor (options listed below):
-			</p>
-			<div id="shadows" class="purple peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
+			<div>
+				<h3>Reflection</h3>
+				<p>
+					Adding a back reflection gives the peel a shiny effect. Reflection strength can be controller in the constructor options (see below):
+				</p>
+				<div id="reflection" class="azure peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
 			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Reflection</h3>
-			<p class="demo-description">
-				Adding a back reflection gives the peel a shiny effect. Reflection strength can be controller in the constructor options (see below):
-			</p>
-			<div id="reflection" class="azure peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
+			<div>
+				<h3>Circle</h3>
+				<p>
+					SVG shapes can also be used for clipping effects:
+				</p>
+				<div id="circle" class="aqua peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
 			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Circle</h3>
-			<p class="demo-description">
-				SVG shapes can also be used for clipping effects:
-			</p>
-			<div id="circle" class="aqua peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Path</h3>
-			<p class="demo-description">
-				More complex shapes such as paths can create custom shapes:
-			</p>
-			<div id="heart" class="heart peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-	</div>
-</section>
-<section id="dynamic-examples">
-	<h2>Dynamic Examples</h2>
-	<div class="cols">
-		<div class="col-6 demo">
-			<h3 class="demo-header">Dragging</h3>
-			<p class="demo-description">
-				Allowing the user to drag the effect by mouse or touch.
-			</p>
-			<div id="dragging" class="azure peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Dragging Heart</h3>
-			<p class="demo-description">
-				Dragging works on custom shapes as well. Note that the corner point can be set anywhere, allowing the effect to precisely follow the mouse cursor.
-			</p>
-			<div id="heart-drag" class="heart peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Constraining</h3>
-			<p class="demo-description">
-				The peeling effect can be constrained at any point. This can be thought of as a point on the layers that are connected and cannot be torn apart:
-			</p>
-			<div id="constraint" class="yellow peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Page turning effect</h3>
-			<p class="demo-description">
-				Any number of corners can be constrained. Most often this is used to create a book-like effect, which there is a shortcut for:
-			</p>
-			<div id="book" class="book peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Fade threshold</h3>
-			<p class="demo-description">
-				The top layer can be faded out past a threshold which represents the clipped area of the top layer.
-			</p>
-			<div id="fade" class="plum peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Fading out</h3>
-			<p class="demo-description">
-				Using the <span class="code">getAmountClipped</span> method gives you greater control over behavior, such as stopping the effect after the top layer has been removed.
-			</p>
-			<div id="fade-out" class="purple peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Setting a peel path</h3>
-			<p class="demo-description">
-				Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
-			</p>
-			<div id="peel-path" class="aqua peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Peel path as a bezier curve</h3>
-			<p class="demo-description">
-				Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
-			</p>
-			<div id="peel-curve" class="book peel">
-				<div class="peel-top">Top</div>
-				<div class="peel-back">Back</div>
-				<div class="peel-bottom">Bottom</div>
-			</div>
-		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Animating a peel path</h3>
-			<p class="demo-description">
-				Since the peel path can be set simply with values between 0 and 1, that means that any animation library can tween those values to give a nice animated effect using <span class="code">setTimeAlongPath</span>.
-			</p>
-			<div class="tap-me book">
-				<div id="peel-press" class="book peel">
+			<div>
+				<h3>Path</h3>
+				<p>
+					More complex shapes such as paths can create custom shapes:
+				</p>
+				<div id="heart" class="heart peel">
 					<div class="peel-top">Top</div>
 					<div class="peel-back">Back</div>
 					<div class="peel-bottom">Bottom</div>
 				</div>
 			</div>
 		</div>
-		<div class="col-6 demo">
-			<h3 class="demo-header">Fading a peel path</h3>
-			<p class="demo-description">
-				If you use <span class="code">setFadeThreshold</span> with a peel path, the threshold will be along the peel path instead of using the calculated area of the clipping effect.
-			</p>
-			<div class="tap-me azure">
-				<div id="peel-fade-path" class="azure peel">
+	</section>
+	<section id="dynamic-examples">
+		<h2>Dynamic Examples</h2>
+		<div class="demos">
+			<div>
+				<h3>Dragging</h3>
+				<p>
+					Allowing the user to drag the effect by mouse or touch.
+				</p>
+				<div id="dragging" class="azure peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Dragging Heart</h3>
+				<p>
+					Dragging works on custom shapes as well. Note that the corner point can be set anywhere, allowing the effect to precisely follow the mouse cursor.
+				</p>
+				<div id="heart-drag" class="heart peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Constraining</h3>
+				<p>
+					The peeling effect can be constrained at any point. This can be thought of as a point on the layers that are connected and cannot be torn apart:
+				</p>
+				<div id="constraint" class="yellow peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Page turning effect</h3>
+				<p>
+					Any number of corners can be constrained. Most often this is used to create a book-like effect, which there is a shortcut for:
+				</p>
+				<div id="book" class="book peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Fade threshold</h3>
+				<p>
+					The top layer can be faded out past a threshold which represents the clipped area of the top layer.
+				</p>
+				<div id="fade" class="plum peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Fading out</h3>
+				<p>
+					Using the <span class="code">getAmountClipped</span> method gives you greater control over behavior, such as stopping the effect after the top layer has been removed.
+				</p>
+				<div id="fade-out" class="purple peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Setting a peel path</h3>
+				<p>
+					Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
+				</p>
+				<div id="peel-path" class="aqua peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Peel path as a bezier curve</h3>
+				<p>
+					Sometimes you want the peel animation to follow an exact path rather than being unrestricted. The <span class="code">setPeelPath</span> and <span class="code">setTimeAlongPath</span> methods can accomplish this.
+				</p>
+				<div id="peel-curve" class="book peel">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Animating a peel path</h3>
+				<p>
+					Since the peel path can be set simply with values between 0 and 1, that means that any animation library can tween those values to give a nice animated effect using <span class="code">setTimeAlongPath</span>.
+				</p>
+				<div id="peel-press" class="book peel tap-me">
+					<div class="peel-top">Top</div>
+					<div class="peel-back">Back</div>
+					<div class="peel-bottom">Bottom</div>
+				</div>
+			</div>
+			<div>
+				<h3>Fading a peel path</h3>
+				<p>
+					If you use <span class="code">setFadeThreshold</span> with a peel path, the threshold will be along the peel path instead of using the calculated area of the clipping effect.
+				</p>
+				<div id="peel-fade-path" class="azure peel tap-me">
 					<div class="peel-top">Top</div>
 					<div class="peel-back">Back</div>
 					<div class="peel-bottom">Bottom</div>
 				</div>
 			</div>
 		</div>
-	</div>
-</section>
-<section id="documentation">
-	<div class="cols">
-		<div class="docs col-12">
-			<div class="paragraph">
-				<div id="constructor">
-					<h3 class="docs-header">Constructor</h3>
-					<ul class="docs-list">
-						<li>
-							<h4 class="method-name">Peel (el, options)</h4>
-							<p class="method-description">
-								Takes an element or query string and an options object. Options are listed below.
-							</p>
-						</li>
-					</ul>
-				</div>
-				<div id="methods">
-					<h3 class="docs-header">Methods</h3>
-					<ul class="docs-list">
-						<li>
-							<h4 class="method-name">addPeelConstraint(...)</h4>
-							<p class="method-description">
-								Sets a constraint on the distance of the peel. This can be thought of as a point on the layers that are connected and cannot be torn apart. Typically this only makes sense as a point on the outer edge, such as the left edge of an open book, or the top edge of a calendar. In this case, simply using 2 constraint points (top-left/bottom-left for a book, etc) will create the desired effect. An arbitrary point can also be used with an effect like a thumbtack holding the pages together. Can be 2 arguments as x,y coordinates or a single argument as a corner id defined in Peel.Corners.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">getAmountClipped()</h4>
-							<p class="method-description">
-								Gets the ratio of the area of the clipped top layer to the total area. This is used to calculate an fade threshold.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">handle(event: "drag"|"press", fn, el)</h4>
-							<p class="method-description">
-								Sets a function to be called when the user either presses or drags. <span class="code">fn</span> will be called with the original event as the first argument, and the x, y coordinates of the event as the 2nd and 3rd arguments, respectively. <span class="code">el</span> can be specified to initiate the event to allow another element serve as a "hit area" that can be larger than the element itself.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">setCorner(...)</h4>
-							<p class="method-description">
-								Sets the corner for the effect to peel back from. Can be 2 arguments as x,y coordinates or a single argument as a corner id defined in Peel.Corners. Default is the bottom right corner.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">setFadeThreshold(n)</h4>
-							<p class="method-description">
-								Sets a threshold above which the top layer (including the backside) layer will begin to fade out. The threshold is between 0 (no peel) and 1 (top layer is fully peeled off) and is calculated based on the visible clipped area. If a peel path is set, it will use the progress along the path instead.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">applyPreset(preset)</h4>
-							<p class="method-description">
-								A shortcut for setting a preset. Currently "book" and "calendar".
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">setPeelPosition(x, y)</h4>
-							<p class="method-description">
-								Sets the position of the peel effect. This point is the position of the corner that is being peeled back.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">setPeelPath(...)</h4>
-							<p class="method-description">
-								Sets a path along which the peel will follow. This can be a flat line segment (represented by 4 arguments: x1, y1, x2, y2) or a bezier curve (represented by 8 arguments: x1, y1, cp1x, cp1y, cp2x, cp2y, x2, y2 where cp1 and cp2 are the 2 bezier control points, similar to the <a target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes#Cubic_Bezier_curves">bezierCurveTo</a> canvas method.)
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">setTimeAlongPath(t)</h4>
-							<p class="method-description">
-								Sets the peel effect to a point in time (between 0 and 1) along a previously specified path. Will throw an error if no path exists.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">removeDragListeners()</h4>
-							<p class="method-description">
-								Removes all event handlers previously set on the instance.
-							</p>
-						</li>
-					</ul>
-				</div>
-				<div id="properties">
-					<h3 class="docs-header">Properties</h3>
-					<ul class="docs-list">
-						<li>
-							<h4 class="method-name">Peel.Corners.TOP_LEFT</h4>
-							<p class="method-description">
-								A constant that represents the top left corner of the bounding box.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">Peel.Corners.TOP_RIGHT</h4>
-							<p class="method-description">
-								A constant that represents the top right corner of the bounding box.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">Peel.Corners.BOTTOM_LEFT</h4>
-							<p class="method-description">
-								A constant that represents the bottom left corner of the bounding box.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">Peel.Corners.BOTTOM_RIGHT</h4>
-							<p class="method-description">
-								A constant that represents the bottom right corner of the bounding box.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">Peel.effectsSupported</h4>
-							<p class="method-description">
-								Whether the browser supports the features required to create the shadow and reflection effects.
-							</p>
-						</li>
-						<li>
-							<h4 class="method-name">Peel.supported</h4>
-							<p class="method-description">
-								Whether the browser supports the basic features required to create the peeling effect.
-							</p>
-						</li>
-					</ul>
-				</div>
-				<div id="options">
-					<h3 class="docs-header">Options</h3>
-					<ul class="docs-list">
-						<li>
-							<h4 class="option-name">&lt;el&gt;Element</h4>
-							<p class="option-description">
-								The constructor will look for the required elements to make the peel effect in the options, and create them if they do not exist. <span class="code">&lt;el&gt;</span> can be "top", "back", "bottom", "topShadow", "backShadow", or "bottomShadow". Either an html element or a string can be passed. If a string is passed as <span class="code">topShadowElement</span>, it would look for an element with the class name <span class="code">top-shadow-element</span> inside the main element.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">&lt;svg&gt;</h4>
-							<p class="option-description">
-								Any SVG element can be specified here which will create a subclip for the effect and allow custom shapes to be used. See the examples for more.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backShadow</h4>
-							<p class="option-description">
-								Creates a shadow effect on the back layer of the peel. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backShadowSize</h4>
-							<p class="option-description">
-								A modifier for the back shadow size. Default is .04.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backShadowOffset</h4>
-							<p class="option-description">
-								A modifier for the back shadow position. Default is 0.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backShadowAlpha</h4>
-							<p class="option-description">
-								Alpha value of the back shadow effect (color is black). Default is .1.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backShadowDistribute</h4>
-							<p class="option-description">
-								When true, the back shadow effect will reach its maximum halfway through the peel, then diminish again. If false, it will continue to grow as the peel advances. "Book" mode sets this to false so that the effect can still have some depth when the book is "fully open". Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backReflection</h4>
-							<p class="option-description">
-								Creates a shiny effect on the back layer of the peel. Default is false.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backReflectionSize</h4>
-							<p class="option-description">
-								A modifier for the reflection size. Default is .02.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backReflectionOffset</h4>
-							<p class="option-description">
-								A modifier for the back reflection position. Default is 0.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backReflectionAlpha</h4>
-							<p class="option-description">
-								Alpha value of the reflection effect (color is white). Default is .15.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">backReflectionDistribute</h4>
-							<p class="option-description">
-								When true, the reflection effect will reach its maximum halfway through the peel, then diminish again. If false, it will continue to grow as the peel advances. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadow</h4>
-							<p class="option-description">
-								Creates a shadow effect on the bottom layer of the peel. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadowSize</h4>
-							<p class="option-description">
-								A modifier for the bottom shadow size. Default is 1.5.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadowOffset</h4>
-							<p class="option-description">
-								A modifier for the bottom shadow position. Default is 0.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadowDarkAlpha</h4>
-							<p class="option-description">
-								Alpha value (color is black) of the dark shadow on the bottom layer when the bottom shadow is enabled. Default is .7.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadowLightAlpha</h4>
-							<p class="option-description">
-								Alpha value (color is black) of the light shadow on the bottom layer when the bottom shadow is enabled. Default is .1.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">bottomShadowDistribute</h4>
-							<p class="option-description">
-								When true, the bottom shadow effect will reach its maximum halfway through the peel, then diminish again. If false, it will continue to grow as the peel advances. "Book" mode sets this to false so that the effect can still have some depth when the book is "fully open". Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">corner</h4>
-							<p class="option-description">
-								Sets the corner for the peel effect to happen from. Defined in Peel.Corners.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">clippingBoxScale</h4>
-							<p class="option-description">
-								Sets the scale of the clipping box around the element. Default is 4, which means 4 times the element size. This allows the effects like box shadow to be seen even when the upper layer falls outsize the element boundaries. Setting this too high may encounter odd effects with clipping.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">dragPreventsDefault</h4>
-							<p class="option-description">
-								Whether initiating a drag event (by mouse or touch) will call <span class="code">preventDefault</span> on the original event. Default is true.</p>
-						</li>
-						<li>
-							<h4 class="option-name">flipConstraintOffset</h4>
-							<p class="option-description">
-								When constraining the peel, the effect will "flip" around the axis of the constraint, which tends to look unnatural. This offset will pull the corner in a few pixels when approaching the axis line, which results in a smoother transition instead of a sudden flip. The value here determines how many pixels the corner is pulled in. Default is 5.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">preset</h4>
-							<p class="option-description">
-								Sets a preset, currently "book" or "calendar".
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">setPeelOnInit</h4>
-							<p class="option-description">
-								If true, the peel effect will be set to its relative corner on initialization. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadow</h4>
-							<p class="option-description">
-								Creates a shadow effect on the top layer of the peel. This may be a box-shadow or drop-shadow (filter) depending on the shape of the clipping. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadowAlpha</h4>
-							<p class="option-description">
-								Alpha level of the top shadow. This may be a box-shadow or drop-shadow depending on the layer's shape. Default is .4.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadowBlur</h4>
-							<p class="option-description">
-								Amount of blur on the top shadow. This may be a box-shadow or drop-shadow depending on the layer's shape. Default is 3.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadowCreatesShape</h4>
-							<p class="option-description">
-								When a complex (non-rectangular) shape is used for the clipping effect, if this option is true another SVG shape will be embedded in the top layer to be used as the drop shadow. This is required for the drop-shadow filter effect but can be turned off here as the drop shadow effect can sometimes produce odd results. Default is true.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadowOffsetX</h4>
-							<p class="option-description">
-								The X offset for the top shadow. Default is 0.
-							</p>
-						</li>
-						<li>
-							<h4 class="option-name">topShadowOffsetY</h4>
-							<p class="option-description">
-								The Y offset for the top shadow. Default is 2.
-							</p>
-						</li>
-					</ul>
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-
+	</section>
+</main>

@@ -5,13 +5,12 @@ h2, h3 {
 }
 
 h2 {
-    @apply text-2xl my-3.5;
+    @apply text-2xl py-3.5;
 }
 
 h3 {
     @apply text-lg;
 }
-
 
 .peel-layer {
     @apply flex items-center justify-center;
@@ -21,4 +20,21 @@ h3 {
     .peel-layer {
         @apply text-2xl;
     }
+}
+
+.demos {
+    @apply grid lg:grid-cols-2 gap-6;
+
+    > div {
+        @apply flex flex-col p-3 bg-neutral-50 rounded-sm;
+
+        > p {
+            @apply grow;
+        }
+
+    }
+}
+
+.peel {
+    @apply mx-auto my-8;
 }

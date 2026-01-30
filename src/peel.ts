@@ -115,38 +115,43 @@ const shapes = ["circle","path","polygon","rect"] as const;
 
 type Shapes = { [P in typeof shapes[number]]?: unknown; }
 
-export type PeelOptions = typeof Peel.defaultOptions&{
-  preset?: Preset;
-}&Shapes;
+export type PeelOptions = typeof Peel.defaultOptions&Shapes;
 
 type PeelLayer = "top"|"back"|"bottom"|"top-shadow"|"back-shadow"|"bottom-shadow"|"back-reflection"|"top-outer-clip"|"back-outer-clip";
 
 /**
  * Four constants representing the corners of the element from which peeling can occur.
  */
-enum PeelCorners {
+export enum PeelCorners {
   TOP_LEFT,
   TOP_RIGHT,
   BOTTOM_LEFT,
   BOTTOM_RIGHT
 }
 
+/**
+ * @inline
+ */
 type PointOption =
   | { x: number; y: number }
   | PeelCorners
   | [number, number]
 ;
 
+/**
+ * @inline
+ */
 type PointArgs = Readonly<[PointOption|Point]|[number, number]>;
 
+/**
+ * @inline
+ */
 type Preset = "book"|"calendar";
 
 /**
  * Main class that controls the peeling effect.
  */
 export class Peel {
-  static readonly Corners = PeelCorners;
-
   el: HTMLElement;
   options: PeelOptions;
   constraints: Circle[];
@@ -180,6 +185,10 @@ export class Peel {
   usesBoxShadow?: boolean;
   center!: Point;
 
+  /**
+   * The constructor will look for the required elements to make the peel effect
+   * in the options, and create them if they do not exist.
+   */
   constructor(
     el: HTMLElement|string,
     options?: Partial<PeelOptions>,
@@ -197,33 +206,84 @@ export class Peel {
   }
 
   static readonly defaultOptions = {
+    /**
+     * Sets the corner for the effect to peel back from.
+     *
+     * @defaults PeelCorners.BOTTOM_RIGHT
+     */
     corner: PeelCorners.BOTTOM_RIGHT as PointOption,
+    /**
+     * Creates a shadow effect on the top layer of the peel. This may be a box-shadow or drop-shadow (filter) depending on the shape of the clipping.
+     */
     topShadow: true,
     topShadowBlur: 5,
     topShadowAlpha: .5,
     topShadowOffsetX: 0,
     topShadowOffsetY: 1,
+    /**
+     * When a complex (non-rectangular) shape is used for the clipping effect, if this option is true another SVG shape will be embedded in the top layer to be used as the drop shadow. This is required for the drop-shadow filter effect but can be turned off here as the drop shadow effect can sometimes produce odd results.
+     */
     topShadowCreatesShape: true,
+    /**
+     * Creates a shiny effect on the back layer of the peel.
+     */
     backReflection: false,
     backReflectionSize: .02,
     backReflectionOffset: 0,
     backReflectionAlpha: .15,
+    /**
+     * When true, the reflection effect will reach its maximum halfway through the peel, then diminish again. If false, it will continue to grow as the peel advances.
+     */
     backReflectionDistribute: true,
+    /**
+     * Creates a shadow effect on the back layer of the peel.
+     */
     backShadow: true,
     backShadowSize: .04,
     backShadowOffset: 0,
     backShadowAlpha: .1,
+    /**
+     * When true, the back shadow effect will reach its maximum halfway through
+     * the peel, then diminish again. If false, it will continue to grow as the
+     * peel advances. "Book" mode sets this to false so that the effect can still
+     * have some depth when the book is "fully open".
+     */
     backShadowDistribute: true,
+    /**
+     * Creates a shadow effect on the bottom layer of the peel.
+     */
     bottomShadow: true,
     bottomShadowSize: 1.5,
     bottomShadowOffset: 0,
+    /**
+     * Alpha value (color is black) of the dark shadow on the bottom layer.
+     */
     bottomShadowDarkAlpha: .7,
+    /**
+     * Alpha value (color is black) of the light shadow on the bottom layer.
+     */
     bottomShadowLightAlpha: .1,
+    /**
+     * When true, the bottom shadow effect will reach its maximum halfway through the peel, then diminish again. If false, it will continue to grow as the peel advances. "Book" mode sets this to false so that the effect can still have some depth when the book is "fully open".
+     */
     bottomShadowDistribute: true,
+    /**
+     * If true, the peel effect will be set to its relative corner on initialization.
+     */
     setPeelOnInit: true,
+    /**
+     * Sets the scale of the clipping box around the element. Default is 4, which means 4 times the element size. This allows the effects like box shadow to be seen even when the upper layer falls outsize the element boundaries. Setting this too high may encounter odd effects with clipping.
+     */
     clippingBoxScale: 4,
+    /**
+     * When constraining the peel, the effect will "flip" around the axis of the constraint, which tends to look unnatural. This offset will pull the corner in a few pixels when approaching the axis line, which results in a smoother transition instead of a sudden flip. The value here determines how many pixels the corner is pulled in.
+     */
     flipConstraintOffset: 5,
-    dragPreventsDefault: true
+    /**
+     * Whether initiating a drag event (by mouse or touch) will call `preventDefault` on the original event.
+     */
+    dragPreventsDefault: true,
+    preset: undefined as Preset|undefined,
   };
 
   applyPreset(preset: Preset) {
@@ -403,7 +463,8 @@ export class Peel {
   }
 
   /**
-   * Gets the ratio of the area of the clipped top layer to the total area.
+   * Gets the ratio of the area of the clipped top layer to the total area. This
+   * is used to calculate a fade threshold.
    * @returns {number} A value between 0 and 1.
    */
   getAmountClipped() {

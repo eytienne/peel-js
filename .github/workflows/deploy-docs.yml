@@ -39,6 +39,7 @@ jobs:
           path: dist
 
       - run: pnpm -C docs install --frozen-lockfile
+      - run: npx typedoc
       - run: pnpm -C docs build
 
       - uses: actions/upload-pages-artifact@v3

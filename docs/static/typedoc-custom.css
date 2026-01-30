@@ -1,0 +1,27 @@
+.container {
+    max-width: 72rem;
+}
+
+.tsd-toolbar-contents {
+    padding-block: 4px;
+}
+
+#tsd-toolbar-links, #tsd-sidebar-links {
+    & a {
+        background-color: oklch(97.3% 0.071 103.193);
+        border-radius: 0.375rem;
+        padding-inline: 12px;
+        padding-block: 8px;
+    }
+}
+
+@media(max-width: 769px) {
+    #tsd-sidebar-links {
+        margin-bottom: 8px;
+
+        & a {
+            display: inline-block;
+            width: initial;
+        }
+    }
+}
