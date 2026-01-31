@@ -1,11 +1,13 @@
 name: Publish lib
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
+  id-token: write
 
 
 concurrency:
@@ -30,6 +32,14 @@ jobs:
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
 
+      - run: |
+          TAG="${{ github.ref }}"
+          SHA="${{ github.sha }}"
+          ZEROS=0000000000000000000000000000000000000000
+          printf "%s %s %s %s" $TAG $SHA $TAG $ZEROS \
+            | ./.githooks/pre-push
+
+
       - run: pnpm install --frozen-lockfile
 
       - uses: actions/download-artifact@v7
@@ -37,6 +47,6 @@ jobs:
           name: dist
           path: dist
 
-      - run: pnpm publish --no-git-checks
+      - run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

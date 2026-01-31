@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Javascript micro library for creating peeling effects using just HTML5",
+  "repository": {
+    "url": "https://github.com/eytienne/peel-js"
+  },
   "exports": {
     ".": "./dist/peel.js",
     "./style": "./src/peel.css"

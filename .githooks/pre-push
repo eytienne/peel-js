@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+// pre-push: for each pushed tag, require tag version == package.json version at that commit.
+
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { styleText } from "node:util";
+
+let ok = true;
+const input = readFileSync(process.stdin.fd, "utf8").trim().split(/\r?\n/);
+
+console.log(input);
+
+for (const l of input) {
+  if (!l) continue;
+  const [, sha, ref] = l.split(/\s+/);
+  if (!ref?.startsWith("refs/tags/") || /^0{40}$/.test(sha)) continue;
+
+  const tag = ref.replace("refs/tags/", "");
+  const tagVersion = tag.replace(/^v/, "");
+  const pkg = JSON.parse(git("show", `${sha}:package.json`));
+
+  if (pkg.version !== tagVersion) {
+    console.error(styleText("red",`Inconsistent tag: ${tag} but package.json version is ${pkg.version} on commit ${sha}`));
+    ok = false;
+  }
+}
+
+process.exit(ok ? 0 : 1);
+
+/**
+ * @param args {string[]}
+ */
+function git(...args) {
+  return execFileSync("git", args, { encoding: "utf8" }).trim();
+}
