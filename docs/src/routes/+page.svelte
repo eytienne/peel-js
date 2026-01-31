@@ -5,7 +5,7 @@
 	import "./page.css"
 	import { onMount } from "svelte";
 	import { Tween } from "svelte/motion";
-	import { sineIn, sineOut } from "svelte/easing";
+	import { quadInOut, sineIn, sineOut } from "svelte/easing";
 	import { on } from "svelte/events";
 	import { base } from "$app/paths";
 
@@ -29,16 +29,54 @@
 				}
 			});
 			p.setPeelPath(170, 170, 130, 130, -179, 180, -180, -26);
-			const tween = new Tween(0, {
-				duration: 1500,
-				easing: sineIn,
+			const tween = new Tween(0, { duration: 1200, easing: quadInOut });
+
+			let visible = $state(true);
+			const observer = new IntersectionObserver((e) => {
+				visible = e[0].isIntersecting;
+			});
+			observer.observe(p.el);
+
+			let clicked = $state(false);
+			let hovered = $state(false);
+			p.el.addEventListener("mouseenter", () => {
+				hovered = true;
+			});
+			p.el.addEventListener("mouseleave", () => {
+				hovered = false;
+			});
+
+			const aLittle = 0.07;
+			const onHoverOptions: TweenedOptions<number> = {
+				duration: 350,
+			};
+			$effect(() => {
+				if (!visible || clicked) return;
+				if (hovered) {
+					tween.set(aLittle*2, onHoverOptions);
+				} else {
+					tween.set(0, onHoverOptions);
+				}
+			});
+			$effect(() => {
+				if (!visible || clicked || hovered) return;
+				const { current } = tween;
+				if (current === aLittle) {
+					tween.set(0);
+				} else if (current === 0) {
+					tween.set(aLittle);
+				}
 			});
 			$effect(() => {
 				p.setTimeAlongPath(tween.current);
 			});
 			p.handle("press", function() {
 				p.removeDragListeners();
-				tween.set(1);
+				tween.set(1, {
+					duration: 1500,
+					easing: sineIn,
+				});
+				clicked = true;
 			});
 		}
 		{
