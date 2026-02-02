@@ -236,8 +236,9 @@
 </script>
 
 <header class="bg-stone-500 w-full">
-	<section id="api" class="max-w-6xl mx-auto flex justify-end py-1">
-		<a href="{base}/api/index.html" class="py-1 px-3 mr-17 text-lg font-bold tracking-wider font-['Roboto_Slab'] rounded-md bg-yellow-100 hover:underline">API</a>
+	<section id="api" class="max-w-6xl mx-auto flex justify-end pr-4 gap-4 items-center py-1 text-lg font-bold tracking-wider font-['Roboto_Slab']">
+		<a href="{base}/api/index.html" class="py-1 px-3 rounded-md bg-yellow-100 hover:underline">API</a>
+		<a href="https://github.com/eytienne/peel-js" class="text-3xl pt-1.5" title="Github link"><span class="icon-[cib--github]"></span></a>
 	</section>
 </header>
 <main class="max-w-6xl mx-auto px-4">

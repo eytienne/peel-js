@@ -1,11 +1,12 @@
 {
   "name": "peel.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Javascript micro library for creating peeling effects using just HTML5",
   "repository": {
     "url": "https://github.com/eytienne/peel-js"
   },
+  "homepage": "https://eytienne.github.io/peel-js/",
   "exports": {
     ".": "./dist/peel.js",
     "./style": "./src/peel.css"
@@ -22,7 +23,21 @@
     "./package.json",
     "./README.md"
   ],
-  "keywords": [],
+  "keywords": [
+    "peel.js",
+    "peel animation",
+    "peel effect",
+    "sticker effect",
+    "page peel",
+    "page turn",
+    "page fold",
+    "page flip",
+    "book effect",
+    "scratch card",
+    "animation",
+    "interactive UI",
+    "reveal animation"
+  ],
   "author": "eytienne",
   "license": "MIT",
   "packageManager": "pnpm@10.28.2",

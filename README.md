@@ -3,12 +3,9 @@ This package is based on work by @andrewplummer.
 Original repository: https://github.com/andrewplummer/peel-js
 Licensed under the MIT License.
 
-### About
+### Peel.js
 
 Peel.js is a Javascript micro library for creating peeling effects using just HTML5.
-It is supported in browsers that support clip paths and transforms (most evergreen
-browsers, but generally excluding IE).
+It is supported in browsers that support clip paths and transforms.
 
-### Docs and examples
-
-https://andrewplummer.github.io/peel-js/
+Check the docs at: https://eytienne.github.io/peel-js/
